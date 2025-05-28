@@ -1,11 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
-import { Gift, Trophy, Star } from 'lucide-react';
+import { Gift, Trophy, Star, Plus } from 'lucide-react';
 import { useAppState } from '@/hooks/use-app-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { CreateRewardDialog } from '@/components/CreateRewardDialog';
 import type { User, Reward } from '@shared/schema';
 
 export default function Rewards() {
-  const { currentUserId } = useAppState();
+  const { currentUserId, mode } = useAppState();
 
   const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: ['/api/user'],
@@ -37,6 +39,14 @@ export default function Rewards() {
 
   return (
     <div className="space-y-6">
+      {/* Header with Add Reward Button for Parents */}
+      {mode === 'parent' && (
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-gray-900">Belohnungen verwalten</h2>
+          <CreateRewardDialog />
+        </div>
+      )}
+
       {/* Current XP Display */}
       <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
         <div className="w-20 h-20 bg-gradient-to-br from-mission-yellow to-mission-green rounded-full flex items-center justify-center mx-auto mb-4">
