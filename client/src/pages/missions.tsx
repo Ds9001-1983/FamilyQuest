@@ -22,11 +22,14 @@ export default function Missions() {
         ? '/api/missions/completed'
         : `/api/missions?userId=${currentUserId}`;
       
+      console.log('Fetching missions from:', url, 'mode:', mode);
       const response = await fetch(url, {
         credentials: 'include',
       });
       if (!response.ok) throw new Error('Failed to fetch missions');
-      return response.json();
+      const data = await response.json();
+      console.log('Received missions data:', data);
+      return data;
     },
   });
 
