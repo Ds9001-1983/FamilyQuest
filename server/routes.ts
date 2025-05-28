@@ -1,11 +1,158 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertMissionSchema, insertRewardSchema } from "@shared/schema";
+import { insertMissionSchema, insertRewardSchema, insertFamilySchema } from "@shared/schema";
 import { z } from "zod";
+import bcrypt from "bcrypt";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Get current user (simplified for demo - in production would use session/auth)
+  // Setup session middleware
+  const PostgresSession = connectPg(session);
+  app.use(session({
+    store: new PostgresSession({
+      conString: process.env.DATABASE_URL,
+      createTableIfMissing: true,
+    }),
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: false, // Set to true in production with HTTPS
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  }));
+
+  // Auth middleware
+  const requireAuth = (req: any, res: any, next: any) => {
+    if (!req.session?.familyId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    next();
+  };
+
+  // Auth routes
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { email, password, familyName } = req.body;
+      
+      // Check if family already exists
+      const existingFamily = await storage.getFamilyByEmail(email);
+      if (existingFamily) {
+        return res.status(400).json({ message: "Ein Konto mit dieser E-Mail-Adresse existiert bereits" });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create family
+      const family = await storage.createFamily({
+        email,
+        password: hashedPassword,
+        familyName,
+        isSetupComplete: false,
+      });
+
+      // Set session
+      req.session.familyId = family.id;
+      req.session.familyName = family.familyName;
+
+      res.status(201).json({
+        id: family.id,
+        familyName: family.familyName,
+        email: family.email,
+        isSetupComplete: family.isSetupComplete,
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Registrierung fehlgeschlagen" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      const family = await storage.getFamilyByEmail(email);
+      if (!family) {
+        return res.status(401).json({ message: "Ungültige E-Mail-Adresse oder Passwort" });
+      }
+
+      const isValidPassword = await bcrypt.compare(password, family.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Ungültige E-Mail-Adresse oder Passwort" });
+      }
+
+      // Set session
+      req.session.familyId = family.id;
+      req.session.familyName = family.familyName;
+
+      res.json({
+        id: family.id,
+        familyName: family.familyName,
+        email: family.email,
+        isSetupComplete: family.isSetupComplete,
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Anmeldung fehlgeschlagen" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err: any) => {
+      if (err) {
+        return res.status(500).json({ message: "Abmeldung fehlgeschlagen" });
+      }
+      res.json({ message: "Erfolgreich abgemeldet" });
+    });
+  });
+
+  app.get("/api/auth/me", (req: any, res) => {
+    if (!req.session?.familyId) {
+      return res.status(401).json({ message: "Nicht angemeldet" });
+    }
+
+    res.json({
+      id: req.session.familyId,
+      familyName: req.session.familyName,
+      isSetupComplete: req.session.isSetupComplete || false,
+    });
+  });
+
+  // Family setup route
+  app.post("/api/family/setup", requireAuth, async (req: any, res) => {
+    try {
+      const { children, rewards } = req.body;
+      const familyId = req.session.familyId;
+
+      // Create children
+      for (const child of children) {
+        await storage.createFamilyChild(child.name, child.age, familyId);
+      }
+
+      // Create rewards
+      for (const reward of rewards) {
+        await storage.createReward({
+          name: reward.name,
+          description: reward.description,
+          xpCost: reward.xpCost,
+        });
+      }
+
+      // Mark family setup as complete
+      await storage.updateFamilySetupStatus(familyId, true);
+      req.session.isSetupComplete = true;
+
+      res.json({ message: "Setup erfolgreich abgeschlossen" });
+    } catch (error) {
+      console.error("Setup error:", error);
+      res.status(500).json({ message: "Setup fehlgeschlagen" });
+    }
+  });
+
+  // Get current user (updated for family system)
   app.get("/api/user", async (req, res) => {
     try {
       // For demo purposes, return the child user

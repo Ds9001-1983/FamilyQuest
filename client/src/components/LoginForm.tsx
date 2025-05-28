@@ -1,28 +1,24 @@
-import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, Users } from 'lucide-react';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, Rocket } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 const loginSchema = z.object({
-  email: z.string().email('Bitte geben Sie eine gültige E-Mail-Adresse ein'),
-  password: z.string().min(6, 'Das Passwort muss mindestens 6 Zeichen lang sein'),
+  email: z.string().email("Bitte geben Sie eine gültige E-Mail-Adresse ein"),
+  password: z.string().min(6, "Passwort muss mindestens 6 Zeichen haben"),
 });
 
 const registerSchema = z.object({
-  email: z.string().email('Bitte geben Sie eine gültige E-Mail-Adresse ein'),
-  password: z.string().min(6, 'Das Passwort muss mindestens 6 Zeichen lang sein'),
-  confirmPassword: z.string(),
-  familyName: z.string().min(2, 'Bitte geben Sie einen Familiennamen ein'),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Die Passwörter stimmen nicht überein",
-  path: ["confirmPassword"],
+  email: z.string().email("Bitte geben Sie eine gültige E-Mail-Adresse ein"),
+  password: z.string().min(6, "Passwort muss mindestens 6 Zeichen haben"),
+  familyName: z.string().min(2, "Familienname muss mindestens 2 Zeichen haben"),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -33,287 +29,211 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ onLoginSuccess }: LoginFormProps) {
-  const [isLogin, setIsLogin] = useState(true);
-  const [showPassword, setShowPassword] = useState(false);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("login");
+  const { loginMutation, registerMutation } = useAuth();
 
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '',
-      password: '',
+      email: "",
+      password: "",
     },
   });
 
   const registerForm = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      email: '',
-      password: '',
-      confirmPassword: '',
-      familyName: '',
-    },
-  });
-
-  const loginMutation = useMutation({
-    mutationFn: async (data: LoginForm) => {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Login fehlgeschlagen');
-      }
-      return response.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Erfolgreich angemeldet!",
-        description: `Willkommen zurück, ${data.user.familyName}!`,
-      });
-      queryClient.invalidateQueries();
-      onLoginSuccess(data.user);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Anmeldung fehlgeschlagen",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const registerMutation = useMutation({
-    mutationFn: async (data: RegisterForm) => {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Registrierung fehlgeschlagen');
-      }
-      return response.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Erfolgreich registriert!",
-        description: `Willkommen bei LevelMission, ${data.user.familyName}!`,
-      });
-      queryClient.invalidateQueries();
-      onLoginSuccess(data.user);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Registrierung fehlgeschlagen",
-        description: error.message,
-        variant: "destructive",
-      });
+      email: "",
+      password: "",
+      familyName: "",
     },
   });
 
   const onLoginSubmit = (data: LoginForm) => {
-    loginMutation.mutate(data);
+    loginMutation.mutate(data, {
+      onSuccess: onLoginSuccess,
+    });
   };
 
   const onRegisterSubmit = (data: RegisterForm) => {
-    registerMutation.mutate(data);
+    registerMutation.mutate(data, {
+      onSuccess: onLoginSuccess,
+    });
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-mission-green/10 to-mission-blue/10 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-mission-green to-mission-blue rounded-2xl mx-auto mb-4 flex items-center justify-center">
-            <Users className="h-8 w-8 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950 dark:to-blue-950 flex items-center justify-center p-4">
+      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center">
+        {/* Hero Section */}
+        <div className="text-center lg:text-left space-y-6">
+          <div className="flex items-center justify-center lg:justify-start gap-3">
+            <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-xl">
+              <Rocket className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              LevelMission
+            </h1>
           </div>
-          <CardTitle className="text-2xl font-bold text-mission-text">
-            {isLogin ? 'Anmelden' : 'Registrieren'}
-          </CardTitle>
-          <CardDescription>
-            {isLogin 
-              ? 'Willkommen zurück bei LevelMission!' 
-              : 'Erstellen Sie Ihr LevelMission Familienkonto'
-            }
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent>
-          {isLogin ? (
-            <Form {...loginForm}>
-              <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-                <FormField
-                  control={loginForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>E-Mail</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="email" 
-                          placeholder="ihre@email.de" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={loginForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Passwort</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input 
-                            type={showPassword ? "text" : "password"} 
-                            placeholder="••••••••" 
-                            {...field} 
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <Button 
-                  type="submit" 
-                  className="w-full bg-gradient-to-r from-mission-green to-mission-blue"
-                  disabled={loginMutation.isPending}
-                >
-                  {loginMutation.isPending ? 'Anmelden...' : 'Anmelden'}
-                </Button>
-              </form>
-            </Form>
-          ) : (
-            <Form {...registerForm}>
-              <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
-                <FormField
-                  control={registerForm.control}
-                  name="familyName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Familienname</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Familie Mustermann" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={registerForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>E-Mail</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="email" 
-                          placeholder="ihre@email.de" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={registerForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Passwort</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input 
-                            type={showPassword ? "text" : "password"} 
-                            placeholder="••••••••" 
-                            {...field} 
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={registerForm.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Passwort bestätigen</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type={showPassword ? "text" : "password"} 
-                          placeholder="••••••••" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <Button 
-                  type="submit" 
-                  className="w-full bg-gradient-to-r from-mission-green to-mission-blue"
-                  disabled={registerMutation.isPending}
-                >
-                  {registerMutation.isPending ? 'Registrieren...' : 'Registrieren'}
-                </Button>
-              </form>
-            </Form>
-          )}
           
-          <div className="mt-6 text-center">
-            <Button
-              variant="link"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-mission-blue hover:text-mission-green"
-            >
-              {isLogin 
-                ? 'Noch kein Konto? Jetzt registrieren' 
-                : 'Bereits ein Konto? Jetzt anmelden'
-              }
-            </Button>
+          <div className="space-y-4">
+            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white">
+              Verwandeln Sie Hausarbeiten in{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
+                Abenteuer
+              </span>
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-lg">
+              Ein Familien-Aufgabensystem, das Lernen und Organisation spielerisch macht. 
+              Sammeln Sie XP, verdienen Sie Belohnungen und machen Sie alltägliche Aufgaben zu einem Spiel!
+            </p>
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-md mx-auto lg:mx-0">
+            <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">XP</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Punkte sammeln</div>
+            </div>
+            <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">🎯</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Missionen</div>
+            </div>
+            <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">🏆</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Belohnungen</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Auth Form */}
+        <div className="w-full max-w-md mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle>Willkommen bei LevelMission</CardTitle>
+              <CardDescription>
+                Melden Sie sich an oder erstellen Sie ein Familienkonto
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="login">Anmelden</TabsTrigger>
+                  <TabsTrigger value="register">Registrieren</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="login" className="space-y-4 mt-6">
+                  <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="login-email">E-Mail</Label>
+                      <Input
+                        id="login-email"
+                        type="email"
+                        placeholder="familie@beispiel.de"
+                        {...loginForm.register("email")}
+                      />
+                      {loginForm.formState.errors.email && (
+                        <p className="text-sm text-red-600">
+                          {loginForm.formState.errors.email.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="login-password">Passwort</Label>
+                      <Input
+                        id="login-password"
+                        type="password"
+                        {...loginForm.register("password")}
+                      />
+                      {loginForm.formState.errors.password && (
+                        <p className="text-sm text-red-600">
+                          {loginForm.formState.errors.password.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={loginMutation.isPending}
+                    >
+                      {loginMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Anmelden...
+                        </>
+                      ) : (
+                        "Anmelden"
+                      )}
+                    </Button>
+                  </form>
+                </TabsContent>
+
+                <TabsContent value="register" className="space-y-4 mt-6">
+                  <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="register-familyName">Familienname</Label>
+                      <Input
+                        id="register-familyName"
+                        placeholder="Familie Müller"
+                        {...registerForm.register("familyName")}
+                      />
+                      {registerForm.formState.errors.familyName && (
+                        <p className="text-sm text-red-600">
+                          {registerForm.formState.errors.familyName.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="register-email">E-Mail</Label>
+                      <Input
+                        id="register-email"
+                        type="email"
+                        placeholder="familie@beispiel.de"
+                        {...registerForm.register("email")}
+                      />
+                      {registerForm.formState.errors.email && (
+                        <p className="text-sm text-red-600">
+                          {registerForm.formState.errors.email.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="register-password">Passwort</Label>
+                      <Input
+                        id="register-password"
+                        type="password"
+                        {...registerForm.register("password")}
+                      />
+                      {registerForm.formState.errors.password && (
+                        <p className="text-sm text-red-600">
+                          {registerForm.formState.errors.password.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={registerMutation.isPending}
+                    >
+                      {registerMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Registrieren...
+                        </>
+                      ) : (
+                        "Familienkonto erstellen"
+                      )}
+                    </Button>
+                  </form>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
