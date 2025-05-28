@@ -76,6 +76,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Undo a completed mission (for parents)
+  app.post("/api/missions/:id/undo", async (req, res) => {
+    try {
+      const missionId = parseInt(req.params.id);
+      const mission = await storage.undoMission(missionId);
+      
+      if (!mission) {
+        return res.status(404).json({ message: "Mission not found" });
+      }
+
+      // Get updated user data
+      const user = await storage.getUser(mission.assignedToUserId!);
+      
+      res.json({ mission, user });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to undo mission" });
+    }
+  });
+
   // Delete a mission
   app.delete("/api/missions/:id", async (req, res) => {
     try {

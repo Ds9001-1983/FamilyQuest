@@ -15,6 +15,7 @@ export interface IStorage {
   getCompletedMissions(): Promise<Mission[]>;
   createMission(mission: InsertMission): Promise<Mission>;
   completeMission(id: number): Promise<Mission | undefined>;
+  undoMission(id: number): Promise<Mission | undefined>;
   deleteMission(id: number): Promise<boolean>;
   
   // Rewards
@@ -99,6 +100,32 @@ export class DatabaseStorage implements IStorage {
           .update(users)
           .set({ totalXP: user.totalXP + mission.xpReward })
           .where(eq(users.id, user.id));
+      }
+    }
+
+    return mission || undefined;
+  }
+
+  async undoMission(id: number): Promise<Mission | undefined> {
+    const [mission] = await db
+      .update(missions)
+      .set({ completed: false, completedAt: null })
+      .where(eq(missions.id, id))
+      .returning();
+
+    if (mission && mission.assignedToUserId) {
+      // Remove XP from the assigned user
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, mission.assignedToUserId));
+
+      if (user) {
+        const newXP = Math.max(0, user.totalXP - mission.xpReward);
+        await db
+          .update(users)
+          .set({ totalXP: newXP })
+          .where(eq(users.id, mission.assignedToUserId));
       }
     }
 
