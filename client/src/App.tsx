@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Rocket, Target, Gift, TrendingUp, User, Plus } from "lucide-react";
 import { useAppState } from "@/hooks/use-app-state";
 import { ModeToggle } from "@/components/ModeToggle";
+import { CreateMissionDialog } from "@/components/CreateMissionDialog";
 import NotFound from "@/pages/not-found";
 import Missions from "@/pages/missions";
 import Rewards from "@/pages/rewards";
@@ -50,15 +51,11 @@ function BottomNavigation() {
 }
 
 function FloatingActionButton() {
-  const { mode } = useAppState();
-  
-  if (mode !== 'child') return null;
+  const { mode, currentUserId } = useAppState();
   
   return (
     <div className="fixed bottom-20 right-6">
-      <button className="bg-mission-green hover:bg-green-600 text-white p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-105 active:scale-95">
-        <Plus className="h-6 w-6" />
-      </button>
+      <CreateMissionDialog currentUserId={currentUserId} />
     </div>
   );
 }
