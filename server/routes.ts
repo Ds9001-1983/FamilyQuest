@@ -32,30 +32,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
-  // Auth routes - demo version
+  // Auth routes - simplified demo version
   app.post("/api/auth/register", async (req, res) => {
     try {
       const { email, password, familyName } = req.body;
-      
-      // Check if user already exists
-      const existingUser = await storage.getUserByUsername(email);
-      if (existingUser) {
-        return res.status(400).json({ message: "Ein Konto mit dieser E-Mail-Adresse existiert bereits" });
-      }
 
-      // Create demo account
+      // Simple demo account creation without database
       (req.session as any).userId = 999;
       (req.session as any).familyName = familyName;
       (req.session as any).email = email;
-      (req.session as any).isSetupComplete = true; // Skip setup for demo
+      (req.session as any).isSetupComplete = true;
 
-      console.log("Session after register:", req.session);
-
-      res.status(201).json({
-        id: 999,
-        familyName: familyName,
-        email: email,
-        isSetupComplete: true,
+      // Save session explicitly
+      req.session.save((err: any) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ message: "Session konnte nicht gespeichert werden" });
+        }
+        
+        console.log("Session successfully saved:", req.session);
+        
+        res.status(201).json({
+          id: 999,
+          familyName: familyName,
+          email: email,
+          isSetupComplete: true,
+        });
       });
     } catch (error) {
       console.error("Registration error:", error);
