@@ -4,35 +4,21 @@ export function ModeToggle() {
   const { mode, toggleMode } = useAppState();
 
   const handleToggle = () => {
-    console.log('Toggle clicked, current mode:', mode);
     toggleMode();
+    // Force a page refresh to ensure UI updates
+    window.location.reload();
   };
 
   return (
-    <div className="flex items-center space-x-2">
-      <span className={`text-sm font-medium ${mode === 'child' ? 'text-mission-green' : 'text-gray-500'}`}>
-        Kind
-      </span>
-      <button 
-        onClick={handleToggle}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-mission-green focus:ring-offset-2 ${
-          mode === 'parent' ? 'bg-mission-green' : 'bg-gray-300'
-        }`}
-      >
-        <span 
-          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-            mode === 'parent' ? 'translate-x-6' : 'translate-x-1'
-          }`}
-        />
-      </button>
-      <span className={`text-sm font-medium ${mode === 'parent' ? 'text-mission-green' : 'text-gray-500'}`}>
-        Eltern
-      </span>
-      
-      {/* Debug info */}
-      <div className="ml-2 text-xs text-gray-400">
-        ({mode})
-      </div>
-    </div>
+    <button
+      onClick={handleToggle}
+      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+        mode === 'parent' 
+          ? 'bg-mission-green text-white' 
+          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+      }`}
+    >
+      {mode === 'parent' ? '👨‍👩‍👧‍👦 Eltern-Modus' : '🧒 Kind-Modus'}
+    </button>
   );
 }
