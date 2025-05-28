@@ -26,7 +26,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auth middleware
   const requireAuth = (req: any, res: any, next: any) => {
-    if (!req.session?.familyId) {
+    if (!req.session?.userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
     next();
@@ -157,10 +157,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get missions for current user
   app.get("/api/missions", async (req, res) => {
     try {
-      const userId = parseInt(req.query.userId as string) || 2; // Default to child user
-      const missions = await storage.getMissionsByUserId(userId);
-      res.json(missions);
+      // Always return demo missions for now
+      const missions = await storage.getAllMissions();
+      console.log("Returning missions:", missions.length);
+      res.status(200).json(missions);
     } catch (error) {
+      console.error("Failed to get missions:", error);
       res.status(500).json({ message: "Failed to get missions" });
     }
   });
