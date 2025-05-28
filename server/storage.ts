@@ -1,6 +1,6 @@
 import { users, missions, rewards, type User, type InsertUser, type Mission, type InsertMission, type Reward, type InsertReward } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -54,7 +54,10 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(missions)
-      .where(eq(missions.assignedToUserId, userId));
+      .where(and(
+        eq(missions.assignedToUserId, userId),
+        eq(missions.completed, false)
+      ));
   }
 
   async getAllMissions(): Promise<Mission[]> {
