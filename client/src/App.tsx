@@ -103,15 +103,65 @@ function Router() {
   );
 }
 
+function AuthenticatedApp() {
+  const { user, logoutMutation } = useAuth();
+  
+  return (
+    <>
+      <Header />
+      <main className="container mx-auto px-4 py-6 pb-20">
+        <Switch>
+          <Route path="/" component={Missions} />
+          <Route path="/rewards" component={Rewards} />
+          <Route path="/progress" component={Progress} />
+          <Route path="/profile" component={Profile} />
+          <Route component={NotFound} />
+        </Switch>
+      </main>
+      <BottomNavigation />
+      <FloatingActionButton />
+    </>
+  );
+}
+
+function AppContent() {
+  const { user, isLoading, isAuthenticated } = useAuth();
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950 dark:to-blue-950">
+        <div className="text-center space-y-4">
+          <div className="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto"></div>
+          <p className="text-gray-600 dark:text-gray-400">LevelMission wird geladen...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!isAuthenticated) {
+    return <LoginForm onLoginSuccess={() => {}} />;
+  }
+  
+  if (user && !user.isSetupComplete) {
+    return <SetupWizard user={user} onSetupComplete={() => {}} />;
+  }
+  
+  return (
+    <div className="min-h-screen bg-mission-bg">
+      <AuthenticatedApp />
+    </div>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <div className="min-h-screen bg-mission-bg">
+      <AuthProvider>
+        <TooltipProvider>
           <Toaster />
-          <Router />
-        </div>
-      </TooltipProvider>
+          <AppContent />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
