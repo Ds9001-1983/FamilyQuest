@@ -3,6 +3,7 @@ import {
   useQuery,
   useMutation,
   UseMutationResult,
+  useQueryClient,
 } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
@@ -39,6 +40,7 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const {
     data: user,
@@ -61,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return userData;
     },
     retry: false,
+    refetchOnWindowFocus: false,
   });
 
   const loginMutation = useMutation({
@@ -79,7 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: AuthUser) => {
       setIsAuthenticated(true);
-      refetch();
+      // Manually update the query cache
+      queryClient.setQueryData(["/api/auth/me"], user);
       toast({
         title: "Erfolgreich angemeldet!",
         description: `Willkommen zurück, ${user.familyName}!`,
@@ -110,7 +114,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: AuthUser) => {
       setIsAuthenticated(true);
-      refetch();
+      // Manually update the query cache
+      queryClient.setQueryData(["/api/auth/me"], user);
       toast({
         title: "Erfolgreich registriert!",
         description: `Willkommen bei LevelMission, ${user.familyName}!`,
