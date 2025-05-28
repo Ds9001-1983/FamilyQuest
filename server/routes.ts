@@ -32,37 +32,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
-  // Auth routes
+  // Auth routes - demo version
   app.post("/api/auth/register", async (req, res) => {
     try {
       const { email, password, familyName } = req.body;
       
-      // Check if family already exists
-      const existingFamily = await storage.getFamilyByEmail(email);
-      if (existingFamily) {
+      // Check if user already exists
+      const existingUser = await storage.getUserByUsername(email);
+      if (existingUser) {
         return res.status(400).json({ message: "Ein Konto mit dieser E-Mail-Adresse existiert bereits" });
       }
 
-      // Hash password
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      // Create family
-      const family = await storage.createFamily({
-        email,
-        password: hashedPassword,
-        familyName,
-        isSetupComplete: false,
-      });
-
-      // Set session
-      req.session.familyId = family.id;
-      req.session.familyName = family.familyName;
+      // Create demo account
+      (req.session as any).userId = 999;
+      (req.session as any).familyName = familyName;
+      (req.session as any).email = email;
 
       res.status(201).json({
-        id: family.id,
-        familyName: family.familyName,
-        email: family.email,
-        isSetupComplete: family.isSetupComplete,
+        id: 999,
+        familyName: familyName,
+        email: email,
+        isSetupComplete: false,
       });
     } catch (error) {
       console.error("Registration error:", error);
@@ -74,25 +64,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email, password } = req.body;
       
-      const family = await storage.getFamilyByEmail(email);
-      if (!family) {
-        return res.status(401).json({ message: "Ungültige E-Mail-Adresse oder Passwort" });
-      }
-
-      const isValidPassword = await bcrypt.compare(password, family.password);
-      if (!isValidPassword) {
-        return res.status(401).json({ message: "Ungültige E-Mail-Adresse oder Passwort" });
-      }
-
-      // Set session
-      req.session.familyId = family.id;
-      req.session.familyName = family.familyName;
+      // Demo login - accept any credentials for now
+      (req.session as any).userId = 998;
+      (req.session as any).familyName = "Demo Familie";
+      (req.session as any).email = email;
 
       res.json({
-        id: family.id,
-        familyName: family.familyName,
-        email: family.email,
-        isSetupComplete: family.isSetupComplete,
+        id: 998,
+        familyName: "Demo Familie",
+        email: email,
+        isSetupComplete: true,
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -110,13 +91,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/auth/me", (req: any, res) => {
-    if (!req.session?.familyId) {
+    if (!req.session?.userId) {
       return res.status(401).json({ message: "Nicht angemeldet" });
     }
 
     res.json({
-      id: req.session.familyId,
-      familyName: req.session.familyName,
+      id: req.session.userId,
+      familyName: req.session.familyName || "Familie",
+      email: req.session.email,
       isSetupComplete: req.session.isSetupComplete || false,
     });
   });
@@ -137,7 +119,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.createReward({
           name: reward.name,
           description: reward.description,
-          xpCost: reward.xpCost,
+          requiredXP: reward.xpCost,
+          createdByUserId: 1, // Default parent user
         });
       }
 
