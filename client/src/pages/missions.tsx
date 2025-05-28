@@ -1,15 +1,20 @@
 import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { XPProgress } from '@/components/XPProgress';
 import { MissionsList } from '@/components/MissionsList';
 import { VoiceControl } from '@/components/VoiceControl';
 import { ParentControls } from '@/components/ParentControls';
 import { RewardsPreview } from '@/components/RewardsPreview';
+import { RewardCelebration } from '@/components/RewardCelebration';
 import { useAppState } from '@/hooks/use-app-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { User, Mission, Reward } from '@shared/schema';
 
 export default function Missions() {
   const { mode, currentUserId } = useAppState();
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [newReward, setNewReward] = useState<Reward | null>(null);
+  const [lastKnownXP, setLastKnownXP] = useState<number | null>(null);
 
   const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: ['/api/user'],
@@ -36,6 +41,25 @@ export default function Missions() {
   const { data: rewards = [], isLoading: rewardsLoading } = useQuery<Reward[]>({
     queryKey: ['/api/rewards'],
   });
+
+  // Check for new rewards when XP changes (only in child mode)
+  useEffect(() => {
+    if (mode === 'child' && user && rewards.length > 0) {
+      if (lastKnownXP !== null && user.totalXP > lastKnownXP) {
+        // Find newly unlocked rewards
+        const availableRewards = rewards.filter(reward => 
+          reward.requiredXP <= user.totalXP && reward.requiredXP > lastKnownXP
+        );
+        
+        if (availableRewards.length > 0) {
+          // Show celebration for the first new reward
+          setNewReward(availableRewards[0]);
+          setShowCelebration(true);
+        }
+      }
+      setLastKnownXP(user.totalXP);
+    }
+  }, [user?.totalXP, rewards, lastKnownXP, mode]);
 
   if (userLoading || missionsLoading || rewardsLoading) {
     return (
@@ -113,6 +137,19 @@ export default function Missions() {
 
       {/* Parent Mode Controls */}
       {mode === 'parent' && <ParentControls />}
+
+      {/* Reward Celebration (only in child mode) */}
+      {mode === 'child' && newReward && (
+        <RewardCelebration
+          isVisible={showCelebration}
+          onClose={() => {
+            setShowCelebration(false);
+            setNewReward(null);
+          }}
+          rewardName={newReward.name}
+          rewardDescription={newReward.description}
+        />
+      )}
     </div>
   );
 }
