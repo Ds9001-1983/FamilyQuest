@@ -16,9 +16,13 @@ export default function Missions() {
   });
 
   const { data: missions = [], isLoading: missionsLoading } = useQuery<Mission[]>({
-    queryKey: ['/api/missions', currentUserId],
+    queryKey: mode === 'parent' ? ['/api/missions/completed'] : ['/api/missions', currentUserId],
     queryFn: async () => {
-      const response = await fetch(`/api/missions?userId=${currentUserId}`, {
+      const url = mode === 'parent' 
+        ? '/api/missions/completed'
+        : `/api/missions?userId=${currentUserId}`;
+      
+      const response = await fetch(url, {
         credentials: 'include',
       });
       if (!response.ok) throw new Error('Failed to fetch missions');

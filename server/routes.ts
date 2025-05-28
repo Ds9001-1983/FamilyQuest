@@ -30,6 +30,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get completed missions (for parent mode)
+  app.get("/api/missions/completed", async (req, res) => {
+    try {
+      const missions = await storage.getCompletedMissions();
+      res.json(missions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch completed missions" });
+    }
+  });
+
   // Create a new mission
   app.post("/api/missions", async (req, res) => {
     try {

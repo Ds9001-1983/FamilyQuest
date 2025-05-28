@@ -12,6 +12,7 @@ export interface IStorage {
   // Missions
   getMissionsByUserId(userId: number): Promise<Mission[]>;
   getAllMissions(): Promise<Mission[]>;
+  getCompletedMissions(): Promise<Mission[]>;
   createMission(mission: InsertMission): Promise<Mission>;
   completeMission(id: number): Promise<Mission | undefined>;
   deleteMission(id: number): Promise<boolean>;
@@ -61,7 +62,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllMissions(): Promise<Mission[]> {
-    return await db.select().from(missions);
+    return await db.select().from(missions).where(eq(missions.completed, false));
+  }
+
+  async getCompletedMissions(): Promise<Mission[]> {
+    return await db.select().from(missions).where(eq(missions.completed, true));
   }
 
   async createMission(insertMission: InsertMission): Promise<Mission> {
