@@ -146,8 +146,8 @@ export default function Missions() {
             setShowCelebration(false);
             setNewReward(null);
           }}
-          rewardName={newReward.name}
-          rewardDescription={newReward.description}
+          rewardName={newReward?.name || ""}
+          rewardDescription={newReward?.description || ""}
         />
       )}
     </div>
