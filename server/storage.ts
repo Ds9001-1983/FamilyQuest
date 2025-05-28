@@ -1,4 +1,6 @@
 import { users, missions, rewards, type User, type InsertUser, type Mission, type InsertMission, type Reward, type InsertReward } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -20,204 +22,106 @@ export interface IStorage {
   deleteReward(id: number): Promise<boolean>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private missions: Map<number, Mission>;
-  private rewards: Map<number, Reward>;
-  private currentUserId: number;
-  private currentMissionId: number;
-  private currentRewardId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.missions = new Map();
-    this.rewards = new Map();
-    this.currentUserId = 1;
-    this.currentMissionId = 1;
-    this.currentRewardId = 1;
-    
-    // Initialize with sample data
-    this.initializeSampleData();
-  }
-
-  private initializeSampleData() {
-    // Create sample parent and child users
-    const parent: User = {
-      id: this.currentUserId++,
-      username: "parent",
-      password: "password",
-      isParent: true,
-      totalXP: 0,
-    };
-    this.users.set(parent.id, parent);
-
-    const child: User = {
-      id: this.currentUserId++,
-      username: "child",
-      password: "password",
-      isParent: false,
-      totalXP: 85,
-    };
-    this.users.set(child.id, child);
-
-    // Create sample missions
-    const sampleMissions: Mission[] = [
-      {
-        id: this.currentMissionId++,
-        title: "Zimmer aufräumen",
-        description: "Das Kinderzimmer sauber machen",
-        xpReward: 10,
-        assignedToUserId: child.id,
-        createdByUserId: parent.id,
-        completed: false,
-        completedAt: null,
-        icon: "home",
-      },
-      {
-        id: this.currentMissionId++,
-        title: "Hausaufgaben machen",
-        description: "Alle Hausaufgaben erledigen",
-        xpReward: 10,
-        assignedToUserId: child.id,
-        createdByUserId: parent.id,
-        completed: false,
-        completedAt: null,
-        icon: "book",
-      },
-      {
-        id: this.currentMissionId++,
-        title: "Hund füttern",
-        description: "Den Hund morgens und abends füttern",
-        xpReward: 10,
-        assignedToUserId: child.id,
-        createdByUserId: parent.id,
-        completed: false,
-        completedAt: null,
-        icon: "paw",
-      },
-    ];
-
-    sampleMissions.forEach(mission => this.missions.set(mission.id, mission));
-
-    // Create sample rewards
-    const sampleRewards: Reward[] = [
-      {
-        id: this.currentRewardId++,
-        name: "Kinoabend",
-        description: "Ein Abend im Kino mit der Familie",
-        requiredXP: 150,
-        icon: "film",
-        createdByUserId: parent.id,
-      },
-      {
-        id: this.currentRewardId++,
-        name: "Videospiel-Zeit",
-        description: "Extra Zeit für Videospiele",
-        requiredXP: 250,
-        icon: "gamepad2",
-        createdByUserId: parent.id,
-      },
-      {
-        id: this.currentRewardId++,
-        name: "Eis essen gehen",
-        description: "Ausflug zur Eisdiele",
-        requiredXP: 350,
-        icon: "ice-cream",
-        createdByUserId: parent.id,
-      },
-    ];
-
-    sampleRewards.forEach(reward => this.rewards.set(reward.id, reward));
-  }
-
+export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { ...insertUser, id, totalXP: 0 };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
   async updateUserXP(id: number, xp: number): Promise<User | undefined> {
-    const user = this.users.get(id);
-    if (user) {
-      user.totalXP = xp;
-      this.users.set(id, user);
-      return user;
-    }
-    return undefined;
+    const [user] = await db
+      .update(users)
+      .set({ totalXP: xp })
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
   }
 
   async getMissionsByUserId(userId: number): Promise<Mission[]> {
-    return Array.from(this.missions.values()).filter(
-      mission => mission.assignedToUserId === userId && !mission.completed
-    );
+    return await db
+      .select()
+      .from(missions)
+      .where(eq(missions.assignedToUserId, userId));
   }
 
   async getAllMissions(): Promise<Mission[]> {
-    return Array.from(this.missions.values());
+    return await db.select().from(missions);
   }
 
   async createMission(insertMission: InsertMission): Promise<Mission> {
-    const id = this.currentMissionId++;
-    const mission: Mission = {
-      ...insertMission,
-      id,
-      completed: false,
-      completedAt: null,
-    };
-    this.missions.set(id, mission);
+    const [mission] = await db
+      .insert(missions)
+      .values(insertMission)
+      .returning();
     return mission;
   }
 
   async completeMission(id: number): Promise<Mission | undefined> {
-    const mission = this.missions.get(id);
-    if (mission && !mission.completed) {
-      mission.completed = true;
-      mission.completedAt = new Date();
-      this.missions.set(id, mission);
-      
+    const [mission] = await db
+      .update(missions)
+      .set({ 
+        completed: true, 
+        completedAt: new Date() 
+      })
+      .where(eq(missions.id, id))
+      .returning();
+
+    if (mission && mission.assignedToUserId) {
       // Award XP to the assigned user
-      if (mission.assignedToUserId) {
-        const user = this.users.get(mission.assignedToUserId);
-        if (user) {
-          user.totalXP += mission.xpReward;
-          this.users.set(user.id, user);
-        }
-      }
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, mission.assignedToUserId));
       
-      return mission;
+      if (user) {
+        await db
+          .update(users)
+          .set({ totalXP: user.totalXP + mission.xpReward })
+          .where(eq(users.id, user.id));
+      }
     }
-    return undefined;
+
+    return mission || undefined;
   }
 
   async deleteMission(id: number): Promise<boolean> {
-    return this.missions.delete(id);
+    const result = await db
+      .delete(missions)
+      .where(eq(missions.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 
   async getRewards(): Promise<Reward[]> {
-    return Array.from(this.rewards.values());
+    return await db.select().from(rewards);
   }
 
   async createReward(insertReward: InsertReward): Promise<Reward> {
-    const id = this.currentRewardId++;
-    const reward: Reward = { ...insertReward, id };
-    this.rewards.set(id, reward);
+    const [reward] = await db
+      .insert(rewards)
+      .values(insertReward)
+      .returning();
     return reward;
   }
 
   async deleteReward(id: number): Promise<boolean> {
-    return this.rewards.delete(id);
+    const result = await db
+      .delete(rewards)
+      .where(eq(rewards.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
