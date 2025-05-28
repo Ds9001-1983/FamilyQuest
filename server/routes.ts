@@ -47,12 +47,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       (req.session as any).userId = 999;
       (req.session as any).familyName = familyName;
       (req.session as any).email = email;
+      (req.session as any).isSetupComplete = true; // Skip setup for demo
+
+      console.log("Session after register:", req.session);
 
       res.status(201).json({
         id: 999,
         familyName: familyName,
         email: email,
-        isSetupComplete: false,
+        isSetupComplete: true,
       });
     } catch (error) {
       console.error("Registration error:", error);
@@ -91,15 +94,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/auth/me", (req: any, res) => {
+    console.log("Session check:", req.session);
+    
     if (!req.session?.userId) {
       return res.status(401).json({ message: "Nicht angemeldet" });
     }
 
-    res.json({
+    res.status(200).json({
       id: req.session.userId,
       familyName: req.session.familyName || "Familie",
       email: req.session.email,
-      isSetupComplete: req.session.isSetupComplete || false,
+      isSetupComplete: req.session.isSetupComplete !== false,
     });
   });
 
