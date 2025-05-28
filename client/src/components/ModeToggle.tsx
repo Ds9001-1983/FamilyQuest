@@ -4,8 +4,14 @@ export function ModeToggle() {
   const { mode, toggleMode } = useAppState();
 
   const handleToggle = () => {
-    toggleMode();
-    // Force a page refresh to ensure UI updates
+    console.log('Before toggle, current mode:', mode);
+    
+    // First save the new mode to localStorage
+    const newMode = mode === 'child' ? 'parent' : 'child';
+    localStorage.setItem('levelMissionMode', newMode);
+    console.log('Saved new mode to localStorage:', newMode);
+    
+    // Then reload the page to apply the change
     window.location.reload();
   };
 
