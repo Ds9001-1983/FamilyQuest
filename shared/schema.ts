@@ -13,15 +13,15 @@ export const families = pgTable("families", {
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  age: integer("age").notNull().default(8),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  isParent: boolean("is_parent").notNull().default(false),
   totalXP: integer("total_xp").notNull().default(0),
+  // New family fields (optional)
+  name: text("name"),
+  age: integer("age"),
   familyId: integer("family_id").references(() => families.id),
   createdAt: timestamp("created_at").defaultNow(),
-  // Legacy fields for backward compatibility
-  username: text("username").unique(),
-  password: text("password"),
-  isParent: boolean("is_parent").default(false),
 });
 
 export const missions = pgTable("missions", {

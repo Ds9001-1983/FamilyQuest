@@ -1,12 +1,19 @@
-import { users, missions, rewards, type User, type InsertUser, type Mission, type InsertMission, type Reward, type InsertReward } from "@shared/schema";
+import { families, users, missions, rewards, type Family, type InsertFamily, type User, type InsertUser, type Mission, type InsertMission, type Reward, type InsertReward } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
+  // Families
+  getFamilyByEmail(email: string): Promise<Family | undefined>;
+  createFamily(family: InsertFamily): Promise<Family>;
+  updateFamilySetupStatus(id: number, isComplete: boolean): Promise<Family | undefined>;
+  
   // Users
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUsersByFamilyId(familyId: number): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
+  createFamilyChild(name: string, age: number, familyId: number): Promise<User>;
   updateUserXP(id: number, xp: number): Promise<User | undefined>;
   
   // Missions
@@ -25,6 +32,30 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // Family methods
+  async getFamilyByEmail(email: string): Promise<Family | undefined> {
+    const [family] = await db.select().from(families).where(eq(families.email, email));
+    return family || undefined;
+  }
+
+  async createFamily(insertFamily: InsertFamily): Promise<Family> {
+    const [family] = await db
+      .insert(families)
+      .values(insertFamily)
+      .returning();
+    return family;
+  }
+
+  async updateFamilySetupStatus(id: number, isComplete: boolean): Promise<Family | undefined> {
+    const [family] = await db
+      .update(families)
+      .set({ isSetupComplete: isComplete })
+      .where(eq(families.id, id))
+      .returning();
+    return family || undefined;
+  }
+
+  // User methods
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;
@@ -35,10 +66,30 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
+  async getUsersByFamilyId(familyId: number): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.familyId, familyId));
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
       .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async createFamilyChild(name: string, age: number, familyId: number): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({
+        username: `${name.toLowerCase()}_${Date.now()}`, // Unique username
+        password: 'child_account', // Dummy password for children
+        isParent: false,
+        totalXP: 0,
+        name,
+        age,
+        familyId,
+      })
       .returning();
     return user;
   }
