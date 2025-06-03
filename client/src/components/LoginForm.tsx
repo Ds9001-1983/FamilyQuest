@@ -62,13 +62,13 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950 dark:to-blue-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 flex items-center justify-center p-4">
       <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center">
         {/* Hero Section */}
         <div className="text-center lg:text-left space-y-6">
           <div className="flex items-center justify-center lg:justify-start gap-3">
-            <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-xl">
-              <Rocket className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+            <div className="p-3 bg-green-100 dark:bg-green-900 rounded-xl">
+              <Rocket className="h-8 w-8 text-green-600 dark:text-green-400" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
               LevelMission
@@ -78,7 +78,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
           <div className="space-y-4">
             <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white">
               Verwandeln Sie Hausarbeiten in{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600">
                 Abenteuer
               </span>
             </h2>
@@ -90,11 +90,11 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-md mx-auto lg:mx-0">
             <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">XP</div>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">XP</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Punkte sammeln</div>
             </div>
             <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">🎯</div>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">🎯</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Missionen</div>
             </div>
             <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
