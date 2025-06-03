@@ -49,7 +49,7 @@ export default function Rewards() {
 
       {/* Current XP Display */}
       <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
-        <div className="w-20 h-20 bg-gradient-to-br from-mission-yellow to-mission-green rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="w-20 h-20 bg-gradient-to-br from-mission-green to-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
           <Star className="h-10 w-10 text-white fill-current" />
         </div>
         <h2 className="text-2xl font-bold text-mission-text mb-2">Deine XP</h2>
@@ -60,12 +60,12 @@ export default function Rewards() {
       {availableRewards.length > 0 && (
         <div className="bg-white rounded-2xl p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-mission-text mb-4 flex items-center">
-            <Trophy className="h-5 w-5 mr-2 text-mission-yellow" />
+            <Trophy className="h-5 w-5 mr-2 text-mission-green" />
             Verfügbare Belohnungen
           </h2>
           <div className="space-y-3">
             {availableRewards.map((reward) => (
-              <div key={reward.id} className="flex items-center space-x-3 p-3 bg-gradient-to-r from-mission-green/10 to-mission-yellow/10 rounded-xl border border-mission-green/20">
+              <div key={reward.id} className="flex items-center space-x-3 p-3 bg-gradient-to-r from-mission-green/10 to-green-500/10 rounded-xl border border-mission-green/20">
                 <div className="w-12 h-12 bg-mission-green rounded-full flex items-center justify-center">
                   <Gift className="h-6 w-6 text-white" />
                 </div>

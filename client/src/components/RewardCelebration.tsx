@@ -125,7 +125,7 @@ export function RewardCelebration({ isVisible, onClose, rewardName, rewardDescri
                 transition={{ duration: 0.5, repeat: 3 }}
                 className="mb-6"
               >
-                <div className="w-24 h-24 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full mx-auto flex items-center justify-center shadow-lg">
+                <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full mx-auto flex items-center justify-center shadow-lg">
                   <Trophy className="h-12 w-12 text-white" />
                 </div>
               </motion.div>
