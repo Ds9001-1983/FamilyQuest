@@ -27,7 +27,7 @@ export function CompletedMissions() {
       case 'home':
         return <Home className="h-5 w-5 text-mission-blue" />;
       case 'book':
-        return <Book className="h-5 w-5 text-mission-yellow" />;
+        return <Book className="h-5 w-5 text-mission-purple" />;
       case 'paw':
         return <Heart className="h-5 w-5 text-mission-green" />;
       case 'tasks':

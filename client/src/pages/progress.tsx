@@ -113,8 +113,8 @@ export default function Progress() {
             <p className="text-sm text-gray-600 mt-1">Erledigte Missionen</p>
           </div>
           
-          <div className="text-center p-4 bg-mission-yellow/10 rounded-xl">
-            <p className="text-3xl font-bold text-mission-yellow">{Math.round(completionRate)}%</p>
+          <div className="text-center p-4 bg-mission-purple/10 rounded-xl">
+            <p className="text-3xl font-bold text-mission-purple">{Math.round(completionRate)}%</p>
             <p className="text-sm text-gray-600 mt-1">Erfolgsrate</p>
           </div>
           

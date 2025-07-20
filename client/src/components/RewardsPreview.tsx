@@ -39,8 +39,8 @@ export function RewardsPreview({ rewards, user }: RewardsPreviewProps) {
       ) : (
         <div className="space-y-3">
           {nextReward && (
-            <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-mission-yellow/10 to-mission-green/10 rounded-xl border border-mission-yellow/20">
-              <div className="w-12 h-12 bg-mission-yellow rounded-full flex items-center justify-center">
+            <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-mission-purple/10 to-mission-green/10 rounded-xl border border-mission-purple/20">
+              <div className="w-12 h-12 bg-mission-purple rounded-full flex items-center justify-center">
                 {getIconComponent(nextReward.icon)}
               </div>
               <div className="flex-1">

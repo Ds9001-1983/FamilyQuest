@@ -32,7 +32,7 @@ export function ParentControls() {
           
           <button 
             onClick={() => handleAction("Belohnungen verwalten")}
-            className="bg-mission-yellow text-white p-4 rounded-xl font-medium hover:bg-green-600 transition-colors"
+            className="bg-mission-purple text-white p-4 rounded-xl font-medium hover:bg-purple-700 transition-colors"
           >
             <Trophy className="h-6 w-6 mb-2 mx-auto" />
             Belohnungen
