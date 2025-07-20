@@ -106,10 +106,10 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
 
         {/* Auth Form */}
         <div className="w-full max-w-md mx-auto">
-          <Card>
+          <Card className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700">
             <CardHeader>
-              <CardTitle>Willkommen bei LevelMission</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-gray-900 dark:text-white">Willkommen bei LevelMission</CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400">
                 Melden Sie sich an oder erstellen Sie ein Familienkonto
               </CardDescription>
             </CardHeader>
@@ -123,7 +123,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
                 <TabsContent value="login" className="space-y-4 mt-6">
                   <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="login-email">E-Mail</Label>
+                      <Label htmlFor="login-email" className="text-gray-700 dark:text-gray-300">E-Mail</Label>
                       <Input
                         id="login-email"
                         type="email"
@@ -138,7 +138,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="login-password">Passwort</Label>
+                      <Label htmlFor="login-password" className="text-gray-700 dark:text-gray-300">Passwort</Label>
                       <Input
                         id="login-password"
                         type="password"
@@ -171,7 +171,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
                 <TabsContent value="register" className="space-y-4 mt-6">
                   <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="register-familyName">Familienname</Label>
+                      <Label htmlFor="register-familyName" className="text-gray-700 dark:text-gray-300">Familienname</Label>
                       <Input
                         id="register-familyName"
                         placeholder="Familie Müller"
@@ -185,7 +185,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="register-email">E-Mail</Label>
+                      <Label htmlFor="register-email" className="text-gray-700 dark:text-gray-300">E-Mail</Label>
                       <Input
                         id="register-email"
                         type="email"
@@ -200,7 +200,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="register-password">Passwort</Label>
+                      <Label htmlFor="register-password" className="text-gray-700 dark:text-gray-300">Passwort</Label>
                       <Input
                         id="register-password"
                         type="password"
