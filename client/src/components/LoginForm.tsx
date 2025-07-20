@@ -115,9 +115,9 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
             </CardHeader>
             <CardContent>
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="login">Anmelden</TabsTrigger>
-                  <TabsTrigger value="register">Registrieren</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 bg-gray-200 dark:bg-gray-700">
+                  <TabsTrigger value="login" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Anmelden</TabsTrigger>
+                  <TabsTrigger value="register" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Registrieren</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="login" className="space-y-4 mt-6">
@@ -128,6 +128,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
                         id="login-email"
                         type="email"
                         placeholder="familie@beispiel.de"
+                        className="bg-gray-700 text-white placeholder:text-gray-400 border-gray-600"
                         {...loginForm.register("email")}
                       />
                       {loginForm.formState.errors.email && (
@@ -142,6 +143,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
                       <Input
                         id="login-password"
                         type="password"
+                        className="bg-gray-700 text-white placeholder:text-gray-400 border-gray-600"
                         {...loginForm.register("password")}
                       />
                       {loginForm.formState.errors.password && (
@@ -153,7 +155,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
 
                     <Button
                       type="submit"
-                      className="w-full"
+                      className="w-full bg-gray-700 hover:bg-gray-800 text-white"
                       disabled={loginMutation.isPending}
                     >
                       {loginMutation.isPending ? (
@@ -175,6 +177,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
                       <Input
                         id="register-familyName"
                         placeholder="Familie Müller"
+                        className="bg-gray-700 text-white placeholder:text-gray-400 border-gray-600"
                         {...registerForm.register("familyName")}
                       />
                       {registerForm.formState.errors.familyName && (
@@ -190,6 +193,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
                         id="register-email"
                         type="email"
                         placeholder="familie@beispiel.de"
+                        className="bg-gray-700 text-white placeholder:text-gray-400 border-gray-600"
                         {...registerForm.register("email")}
                       />
                       {registerForm.formState.errors.email && (
@@ -204,6 +208,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
                       <Input
                         id="register-password"
                         type="password"
+                        className="bg-gray-700 text-white placeholder:text-gray-400 border-gray-600"
                         {...registerForm.register("password")}
                       />
                       {registerForm.formState.errors.password && (
@@ -215,7 +220,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
 
                     <Button
                       type="submit"
-                      className="w-full"
+                      className="w-full bg-gray-700 hover:bg-gray-800 text-white"
                       disabled={registerMutation.isPending}
                     >
                       {registerMutation.isPending ? (
