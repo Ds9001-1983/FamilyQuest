@@ -8,18 +8,29 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Validate required environment variables
+  if (!process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET environment variable is required");
+  }
+  if (!process.env.DATABASE_URL) {
+    throw new Error("DATABASE_URL environment variable is required");
+  }
+
   // Setup session middleware
+  const isProduction = process.env.NODE_ENV === "production";
   const PostgresSession = connectPg(session);
   app.use(session({
     store: new PostgresSession({
       conString: process.env.DATABASE_URL,
       createTableIfMissing: true,
     }),
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false, // Set to true in production with HTTPS
+      secure: isProduction,
+      httpOnly: true,
+      sameSite: "lax",
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     },
   }));
@@ -32,31 +43,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
-  // Auth routes - simplified demo version
+  // Auth routes
   app.post("/api/auth/register", async (req, res) => {
     try {
       const { email, password, familyName } = req.body;
 
-      // Simple demo account creation without database
-      (req.session as any).userId = 999;
-      (req.session as any).familyName = familyName;
-      (req.session as any).email = email;
-      (req.session as any).isSetupComplete = true;
+      // Validate input
+      if (!email || !password || !familyName) {
+        return res.status(400).json({ message: "Alle Felder sind erforderlich" });
+      }
 
-      // Save session explicitly
+      // Check if family with this email already exists
+      const existingFamily = await storage.getFamilyByEmail(email);
+      if (existingFamily) {
+        return res.status(409).json({ message: "Diese E-Mail-Adresse ist bereits registriert" });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create family in database
+      const family = await storage.createFamily({
+        familyName,
+        email,
+        password: hashedPassword,
+      });
+
+      // Set session
+      (req.session as any).userId = family.id;
+      (req.session as any).familyId = family.id;
+      (req.session as any).familyName = family.familyName;
+      (req.session as any).email = family.email;
+      (req.session as any).isSetupComplete = family.isSetupComplete;
+
       req.session.save((err: any) => {
         if (err) {
           console.error("Session save error:", err);
           return res.status(500).json({ message: "Session konnte nicht gespeichert werden" });
         }
-        
-        console.log("Session successfully saved:", req.session);
-        
+
         res.status(201).json({
-          id: 999,
-          familyName: familyName,
-          email: email,
-          isSetupComplete: true,
+          id: family.id,
+          familyName: family.familyName,
+          email: family.email,
+          isSetupComplete: family.isSetupComplete,
         });
       });
     } catch (error) {
@@ -68,17 +98,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password } = req.body;
-      
-      // Demo login - accept any credentials for now
-      (req.session as any).userId = 998;
-      (req.session as any).familyName = "Demo Familie";
-      (req.session as any).email = email;
+
+      // Validate input
+      if (!email || !password) {
+        return res.status(400).json({ message: "E-Mail und Passwort sind erforderlich" });
+      }
+
+      // Find family by email
+      const family = await storage.getFamilyByEmail(email);
+      if (!family) {
+        return res.status(401).json({ message: "Ungültige E-Mail oder Passwort" });
+      }
+
+      // Verify password
+      const isValidPassword = await bcrypt.compare(password, family.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Ungültige E-Mail oder Passwort" });
+      }
+
+      // Set session
+      (req.session as any).userId = family.id;
+      (req.session as any).familyId = family.id;
+      (req.session as any).familyName = family.familyName;
+      (req.session as any).email = family.email;
+      (req.session as any).isSetupComplete = family.isSetupComplete;
 
       res.json({
-        id: 998,
-        familyName: "Demo Familie",
-        email: email,
-        isSetupComplete: true,
+        id: family.id,
+        familyName: family.familyName,
+        email: family.email,
+        isSetupComplete: family.isSetupComplete,
       });
     } catch (error) {
       console.error("Login error:", error);
