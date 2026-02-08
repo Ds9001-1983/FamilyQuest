@@ -4,9 +4,11 @@ import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   // Families
+  getFamily(id: number): Promise<Family | undefined>;
   getFamilyByEmail(email: string): Promise<Family | undefined>;
   createFamily(family: InsertFamily): Promise<Family>;
   updateFamilySetupStatus(id: number, isComplete: boolean): Promise<Family | undefined>;
+  updateFamilyPin(id: number, pin: string): Promise<Family | undefined>;
   
   // Users
   getUser(id: number): Promise<User | undefined>;
@@ -33,6 +35,11 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   // Family methods
+  async getFamily(id: number): Promise<Family | undefined> {
+    const [family] = await db.select().from(families).where(eq(families.id, id));
+    return family || undefined;
+  }
+
   async getFamilyByEmail(email: string): Promise<Family | undefined> {
     const [family] = await db.select().from(families).where(eq(families.email, email));
     return family || undefined;
@@ -50,6 +57,15 @@ export class DatabaseStorage implements IStorage {
     const [family] = await db
       .update(families)
       .set({ isSetupComplete: isComplete })
+      .where(eq(families.id, id))
+      .returning();
+    return family || undefined;
+  }
+
+  async updateFamilyPin(id: number, pin: string): Promise<Family | undefined> {
+    const [family] = await db
+      .update(families)
+      .set({ parentPin: pin })
       .where(eq(families.id, id))
       .returning();
     return family || undefined;

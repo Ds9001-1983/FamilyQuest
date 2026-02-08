@@ -7,6 +7,7 @@ export const families = pgTable("families", {
   familyName: text("family_name").notNull(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  parentPin: text("parent_pin"), // 4-digit PIN for parent mode access
   isSetupComplete: boolean("is_setup_complete").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });

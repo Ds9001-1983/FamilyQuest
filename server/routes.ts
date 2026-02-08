@@ -162,8 +162,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Family setup route
   app.post("/api/family/setup", requireAuth, async (req: any, res) => {
     try {
-      const { children, rewards } = req.body;
+      const { children, rewards, parentPin } = req.body;
       const familyId = req.session.familyId;
+
+      // Validate PIN
+      if (!parentPin || !/^\d{4}$/.test(parentPin)) {
+        return res.status(400).json({ message: "Ungültiger PIN" });
+      }
 
       // Create children
       for (const child of children) {
@@ -180,7 +185,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Mark family setup as complete
+      // Save PIN and mark setup complete
+      await storage.updateFamilyPin(familyId, parentPin);
       await storage.updateFamilySetupStatus(familyId, true);
       req.session.isSetupComplete = true;
 
@@ -188,6 +194,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Setup error:", error);
       res.status(500).json({ message: "Setup fehlgeschlagen" });
+    }
+  });
+
+  // PIN verification route
+  app.post("/api/auth/verify-pin", requireAuth, async (req: any, res) => {
+    try {
+      const { pin } = req.body;
+      const familyId = req.session.familyId;
+
+      if (!pin || !/^\d{4}$/.test(pin)) {
+        return res.status(400).json({ message: "Ungültiger PIN" });
+      }
+
+      const family = await storage.getFamily(familyId);
+      if (!family) {
+        return res.status(404).json({ message: "Familie nicht gefunden" });
+      }
+
+      if (family.parentPin !== pin) {
+        return res.status(401).json({ message: "Falscher PIN" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("PIN verification error:", error);
+      res.status(500).json({ message: "PIN-Überprüfung fehlgeschlagen" });
     }
   });
 

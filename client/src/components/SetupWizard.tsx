@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, Trash2, Users, Gift, ArrowRight, ArrowLeft } from "lucide-react";
+import { Loader2, Plus, Trash2, Users, Gift, ArrowRight, ArrowLeft, Smartphone, Lock, Rocket } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -23,6 +23,8 @@ const setupSchema = z.object({
     description: z.string().min(5, "Beschreibung muss mindestens 5 Zeichen haben"),
     xpCost: z.number().min(10).max(1000),
   })).min(1, "Mindestens eine Belohnung muss hinzugefügt werden"),
+  parentPin: z.string().length(4, "PIN muss genau 4 Ziffern haben").regex(/^\d{4}$/, "PIN darf nur Ziffern enthalten"),
+  deviceType: z.enum(["parent", "child"]),
 });
 
 type SetupForm = z.infer<typeof setupSchema>;
@@ -45,6 +47,8 @@ export function SetupWizard({ user, onSetupComplete }: SetupWizardProps) {
         { name: "Kinoabend", description: "Ein gemütlicher Filmabend mit der Familie", xpCost: 100 },
         { name: "Extra Taschengeld", description: "5€ zusätzliches Taschengeld", xpCost: 150 },
       ],
+      parentPin: "",
+      deviceType: "parent",
     },
   });
 
@@ -81,6 +85,9 @@ export function SetupWizard({ user, onSetupComplete }: SetupWizardProps) {
   });
 
   const onSubmit = (data: SetupForm) => {
+    // Save device type to localStorage
+    localStorage.setItem("levelMissionDeviceType", data.deviceType);
+    localStorage.setItem("levelMissionMode", data.deviceType === "child" ? "child" : "parent");
     setupMutation.mutate(data);
   };
 
@@ -94,6 +101,11 @@ export function SetupWizard({ user, onSetupComplete }: SetupWizardProps) {
       // Validate rewards step
       form.trigger("rewards").then((isValid) => {
         if (isValid) setCurrentStep(3);
+      });
+    } else if (currentStep === 3) {
+      // Validate PIN step
+      form.trigger(["parentPin", "deviceType"]).then((isValid) => {
+        if (isValid) setCurrentStep(4);
       });
     }
   };
@@ -112,14 +124,14 @@ export function SetupWizard({ user, onSetupComplete }: SetupWizardProps) {
               Familie {user.familyName} einrichten
             </CardTitle>
             <CardDescription>
-              Schritt {currentStep} von 3: Richten Sie Ihr Familienkonto ein
+              Schritt {currentStep} von 4: Richten Sie Ihr Familienkonto ein
             </CardDescription>
-            
+
             {/* Progress bar */}
             <div className="w-full bg-gray-200 rounded-full h-2 mt-4">
-              <div 
+              <div
                 className="bg-purple-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${(currentStep / 3) * 100}%` }}
+                style={{ width: `${(currentStep / 4) * 100}%` }}
               />
             </div>
           </CardHeader>
@@ -284,8 +296,87 @@ export function SetupWizard({ user, onSetupComplete }: SetupWizardProps) {
                 </div>
               )}
 
-              {/* Step 3: Review */}
+              {/* Step 3: PIN & Device Type */}
               {currentStep === 3 && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <Lock className="h-5 w-5" />
+                      Sicherheit & Gerätetyp
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">
+                      Legen Sie einen 4-stelligen PIN fest, um den Elternbereich zu schützen.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="parentPin">Eltern-PIN (4 Ziffern)</Label>
+                      <Input
+                        id="parentPin"
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={4}
+                        placeholder="****"
+                        className="text-center text-2xl tracking-widest"
+                        {...form.register("parentPin")}
+                      />
+                      {form.formState.errors.parentPin && (
+                        <p className="text-sm text-red-600 mt-1">
+                          {form.formState.errors.parentPin.message}
+                        </p>
+                      )}
+                      <p className="text-sm text-gray-500 mt-1">
+                        Dieser PIN wird benötigt, um auf den Elternbereich zuzugreifen.
+                      </p>
+                    </div>
+
+                    <div className="pt-4">
+                      <Label className="text-base font-medium">Gerätetyp festlegen</Label>
+                      <p className="text-sm text-gray-500 mb-3">
+                        Ist dieses Gerät für Eltern oder für ein Kind?
+                      </p>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <button
+                          type="button"
+                          onClick={() => form.setValue("deviceType", "parent")}
+                          className={`p-4 rounded-lg border-2 transition-all ${
+                            form.watch("deviceType") === "parent"
+                              ? "border-purple-600 bg-purple-50 dark:bg-purple-900/20"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          <Smartphone className="h-8 w-8 mx-auto mb-2 text-purple-600" />
+                          <div className="font-medium">Elterngerät</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Voller Zugriff mit PIN
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => form.setValue("deviceType", "child")}
+                          className={`p-4 rounded-lg border-2 transition-all ${
+                            form.watch("deviceType") === "child"
+                              ? "border-green-600 bg-green-50 dark:bg-green-900/20"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          <Rocket className="h-8 w-8 mx-auto mb-2 text-green-600" />
+                          <div className="font-medium">Kindergerät</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Direkt XP sammeln!
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Review */}
+              {currentStep === 4 && (
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-semibold mb-3">Überprüfung</h3>
@@ -324,6 +415,13 @@ export function SetupWizard({ user, onSetupComplete }: SetupWizardProps) {
                         ))}
                       </div>
                     </div>
+
+                    <div>
+                      <h4 className="font-medium mb-2">Geräteeinstellung</h4>
+                      <Badge variant={form.watch("deviceType") === "parent" ? "default" : "secondary"}>
+                        {form.watch("deviceType") === "parent" ? "Elterngerät" : "Kindergerät"}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
               )}
@@ -340,7 +438,7 @@ export function SetupWizard({ user, onSetupComplete }: SetupWizardProps) {
                   Zurück
                 </Button>
 
-                {currentStep < 3 ? (
+                {currentStep < 4 ? (
                   <Button type="button" onClick={nextStep}>
                     Weiter
                     <ArrowRight className="h-4 w-4 ml-2" />
@@ -358,8 +456,8 @@ export function SetupWizard({ user, onSetupComplete }: SetupWizardProps) {
                       </>
                     ) : (
                       <>
-                        <Gift className="h-4 w-4 mr-2" />
-                        Setup abschließen
+                        <Rocket className="h-4 w-4 mr-2" />
+                        Los geht's!
                       </>
                     )}
                   </Button>
