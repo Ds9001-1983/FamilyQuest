@@ -25,6 +25,10 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Mission status: pending (active), pending_approval (child submitted), approved (parent confirmed), rejected (parent rejected)
+export const missionStatusEnum = ["pending", "pending_approval", "approved", "rejected"] as const;
+export type MissionStatus = typeof missionStatusEnum[number];
+
 export const missions = pgTable("missions", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
@@ -32,8 +36,9 @@ export const missions = pgTable("missions", {
   xpReward: integer("xp_reward").notNull().default(10),
   assignedToUserId: integer("assigned_to_user_id").references(() => users.id),
   createdByUserId: integer("created_by_user_id").notNull().references(() => users.id),
-  completed: boolean("completed").notNull().default(false),
-  completedAt: timestamp("completed_at"),
+  status: text("status").notNull().default("pending"), // pending, pending_approval, approved, rejected
+  submittedAt: timestamp("submitted_at"), // when child marked as done
+  completedAt: timestamp("completed_at"), // when parent approved
   icon: text("icon").notNull().default("tasks"),
 });
 
@@ -63,7 +68,8 @@ export const insertUserSchema = createInsertSchema(users).omit({
 
 export const insertMissionSchema = createInsertSchema(missions).omit({
   id: true,
-  completed: true,
+  status: true,
+  submittedAt: true,
   completedAt: true,
 });
 

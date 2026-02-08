@@ -1,4 +1,4 @@
-import { families, users, missions, rewards, type Family, type InsertFamily, type User, type InsertUser, type Mission, type InsertMission, type Reward, type InsertReward } from "@shared/schema";
+import { families, users, missions, rewards, type Family, type InsertFamily, type User, type InsertUser, type Mission, type InsertMission, type Reward, type InsertReward, type MissionStatus } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 
@@ -21,10 +21,13 @@ export interface IStorage {
   // Missions
   getMissionsByUserId(userId: number): Promise<Mission[]>;
   getAllMissions(): Promise<Mission[]>;
-  getCompletedMissions(): Promise<Mission[]>;
+  getActiveMissions(): Promise<Mission[]>;
+  getPendingApprovalMissions(): Promise<Mission[]>;
+  getApprovedMissions(): Promise<Mission[]>;
   createMission(mission: InsertMission): Promise<Mission>;
-  completeMission(id: number): Promise<Mission | undefined>;
-  undoMission(id: number): Promise<Mission | undefined>;
+  submitMission(id: number): Promise<Mission | undefined>;
+  approveMission(id: number): Promise<Mission | undefined>;
+  rejectMission(id: number): Promise<Mission | undefined>;
   deleteMission(id: number): Promise<boolean>;
   
   // Rewards
@@ -125,16 +128,26 @@ export class DatabaseStorage implements IStorage {
       .from(missions)
       .where(and(
         eq(missions.assignedToUserId, userId),
-        eq(missions.completed, false)
+        eq(missions.status, "pending")
       ));
   }
 
   async getAllMissions(): Promise<Mission[]> {
-    return await db.select().from(missions).where(eq(missions.completed, false));
+    return await db.select().from(missions);
   }
 
-  async getCompletedMissions(): Promise<Mission[]> {
-    return await db.select().from(missions).where(eq(missions.completed, true));
+  async getActiveMissions(): Promise<Mission[]> {
+    // Get missions that are pending or pending_approval (not yet approved/rejected)
+    const allMissions = await db.select().from(missions);
+    return allMissions.filter(m => m.status === "pending" || m.status === "pending_approval");
+  }
+
+  async getPendingApprovalMissions(): Promise<Mission[]> {
+    return await db.select().from(missions).where(eq(missions.status, "pending_approval"));
+  }
+
+  async getApprovedMissions(): Promise<Mission[]> {
+    return await db.select().from(missions).where(eq(missions.status, "approved"));
   }
 
   async createMission(insertMission: InsertMission): Promise<Mission> {
@@ -145,12 +158,26 @@ export class DatabaseStorage implements IStorage {
     return mission;
   }
 
-  async completeMission(id: number): Promise<Mission | undefined> {
+  // Child submits mission for approval
+  async submitMission(id: number): Promise<Mission | undefined> {
     const [mission] = await db
       .update(missions)
-      .set({ 
-        completed: true, 
-        completedAt: new Date() 
+      .set({
+        status: "pending_approval",
+        submittedAt: new Date(),
+      })
+      .where(eq(missions.id, id))
+      .returning();
+    return mission || undefined;
+  }
+
+  // Parent approves mission - awards XP
+  async approveMission(id: number): Promise<Mission | undefined> {
+    const [mission] = await db
+      .update(missions)
+      .set({
+        status: "approved",
+        completedAt: new Date(),
       })
       .where(eq(missions.id, id))
       .returning();
@@ -161,7 +188,7 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(users)
         .where(eq(users.id, mission.assignedToUserId));
-      
+
       if (user) {
         await db
           .update(users)
@@ -173,29 +200,16 @@ export class DatabaseStorage implements IStorage {
     return mission || undefined;
   }
 
-  async undoMission(id: number): Promise<Mission | undefined> {
+  // Parent rejects mission - back to pending
+  async rejectMission(id: number): Promise<Mission | undefined> {
     const [mission] = await db
       .update(missions)
-      .set({ completed: false, completedAt: null })
+      .set({
+        status: "pending",
+        submittedAt: null,
+      })
       .where(eq(missions.id, id))
       .returning();
-
-    if (mission && mission.assignedToUserId) {
-      // Remove XP from the assigned user
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, mission.assignedToUserId));
-
-      if (user) {
-        const newXP = Math.max(0, user.totalXP - mission.xpReward);
-        await db
-          .update(users)
-          .set({ totalXP: newXP })
-          .where(eq(users.id, mission.assignedToUserId));
-      }
-    }
-
     return mission || undefined;
   }
 

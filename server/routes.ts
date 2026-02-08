@@ -237,12 +237,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get missions for current user
+  // Get active missions (pending + pending_approval)
   app.get("/api/missions", async (req, res) => {
     try {
-      // Always return demo missions for now
-      const missions = await storage.getAllMissions();
-      console.log("Returning missions:", missions.length);
+      const missions = await storage.getActiveMissions();
       res.status(200).json(missions);
     } catch (error) {
       console.error("Failed to get missions:", error);
@@ -250,16 +248,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get completed missions (for parent mode)
-  app.get("/api/missions/completed", async (req, res) => {
+  // Get missions pending approval (for parent mode)
+  app.get("/api/missions/pending-approval", async (req, res) => {
     try {
-      console.log("Fetching completed missions...");
-      const missions = await storage.getCompletedMissions();
-      console.log("Found completed missions:", missions);
+      const missions = await storage.getPendingApprovalMissions();
       res.json(missions);
     } catch (error) {
-      console.error("Error fetching completed missions:", error);
-      res.status(500).json({ message: "Failed to fetch completed missions" });
+      console.error("Error fetching pending approval missions:", error);
+      res.status(500).json({ message: "Failed to fetch pending missions" });
+    }
+  });
+
+  // Get approved missions (history)
+  app.get("/api/missions/approved", async (req, res) => {
+    try {
+      const missions = await storage.getApprovedMissions();
+      res.json(missions);
+    } catch (error) {
+      console.error("Error fetching approved missions:", error);
+      res.status(500).json({ message: "Failed to fetch approved missions" });
     }
   });
 
@@ -277,41 +284,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Complete a mission
-  app.post("/api/missions/:id/complete", async (req, res) => {
+  // Child submits mission for approval
+  app.post("/api/missions/:id/submit", async (req, res) => {
     try {
       const missionId = parseInt(req.params.id);
-      const mission = await storage.completeMission(missionId);
-      
+      const mission = await storage.submitMission(missionId);
+
       if (!mission) {
-        return res.status(404).json({ message: "Mission not found or already completed" });
+        return res.status(404).json({ message: "Mission nicht gefunden" });
       }
 
-      // Get updated user data
-      const user = await storage.getUser(mission.assignedToUserId!);
-      
-      res.json({ mission, user });
+      res.json({ mission, message: "Mission zur Prüfung eingereicht!" });
     } catch (error) {
-      res.status(500).json({ message: "Failed to complete mission" });
+      res.status(500).json({ message: "Fehler beim Einreichen der Mission" });
     }
   });
 
-  // Undo a completed mission (for parents)
-  app.post("/api/missions/:id/undo", async (req, res) => {
+  // Parent approves mission - awards XP
+  app.post("/api/missions/:id/approve", async (req, res) => {
     try {
       const missionId = parseInt(req.params.id);
-      const mission = await storage.undoMission(missionId);
-      
+      const mission = await storage.approveMission(missionId);
+
       if (!mission) {
-        return res.status(404).json({ message: "Mission not found" });
+        return res.status(404).json({ message: "Mission nicht gefunden" });
       }
 
       // Get updated user data
-      const user = await storage.getUser(mission.assignedToUserId!);
-      
-      res.json({ mission, user });
+      const user = mission.assignedToUserId
+        ? await storage.getUser(mission.assignedToUserId)
+        : null;
+
+      res.json({ mission, user, message: "Mission genehmigt! XP vergeben." });
     } catch (error) {
-      res.status(500).json({ message: "Failed to undo mission" });
+      res.status(500).json({ message: "Fehler beim Genehmigen der Mission" });
+    }
+  });
+
+  // Parent rejects mission - back to pending
+  app.post("/api/missions/:id/reject", async (req, res) => {
+    try {
+      const missionId = parseInt(req.params.id);
+      const mission = await storage.rejectMission(missionId);
+
+      if (!mission) {
+        return res.status(404).json({ message: "Mission nicht gefunden" });
+      }
+
+      res.json({ mission, message: "Mission zurückgewiesen." });
+    } catch (error) {
+      res.status(500).json({ message: "Fehler beim Zurückweisen der Mission" });
     }
   });
 
