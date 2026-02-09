@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { XPProgress } from '@/components/XPProgress';
 import { MissionsList } from '@/components/MissionsList';
-import { VoiceControl } from '@/components/VoiceControl';
 import { ParentControls } from '@/components/ParentControls';
 import { RewardsPreview } from '@/components/RewardsPreview';
 import { RewardCelebration } from '@/components/RewardCelebration';
@@ -144,9 +143,6 @@ export default function Missions() {
       {/* XP Progress Section */}
       <XPProgress user={user} rewards={rewards} />
 
-      {/* Voice Control Button */}
-      <VoiceControl />
-
       {/* Parent Mode: Pending Approval Missions */}
       {mode === 'parent' && (
         <div className="space-y-4">
@@ -199,29 +195,27 @@ export default function Missions() {
                     </div>
                     <div className="flex gap-2">
                       <Button
-                        size="sm"
                         variant="outline"
-                        className="border-red-300 text-red-600 hover:bg-red-50"
+                        className="border-red-300 text-red-600 hover:bg-red-50 h-12 w-12 p-0"
                         onClick={() => rejectMutation.mutate(mission.id)}
                         disabled={rejectMutation.isPending || approveMutation.isPending}
                       >
                         {rejectMutation.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <Loader2 className="h-5 w-5 animate-spin" />
                         ) : (
-                          <X className="h-4 w-4" />
+                          <X className="h-5 w-5" />
                         )}
                       </Button>
                       <Button
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700 text-white"
+                        className="bg-green-600 hover:bg-green-700 text-white h-12 px-5"
                         onClick={() => approveMutation.mutate(mission.id)}
                         disabled={approveMutation.isPending || rejectMutation.isPending}
                       >
                         {approveMutation.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <Loader2 className="h-5 w-5 animate-spin" />
                         ) : (
                           <>
-                            <Check className="h-4 w-4 mr-1" />
+                            <Check className="h-5 w-5 mr-1" />
                             OK
                           </>
                         )}

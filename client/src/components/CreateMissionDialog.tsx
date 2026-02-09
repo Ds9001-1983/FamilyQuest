@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Home, Book, Heart, Car, Star, Utensils } from 'lucide-react';
+import { Plus, Home, Book, Heart, Star, Dumbbell, Palette, Dog, ShoppingBag } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -87,10 +87,14 @@ export function CreateMissionDialog({ currentUserId, trigger }: CreateMissionDia
   };
 
   const iconOptions = [
-    { value: 'home', icon: Home, label: 'Zuhause' },
-    { value: 'book', icon: Book, label: 'Lernen' },
-    { value: 'paw', icon: Heart, label: 'Haustiere' },
-    { value: 'tasks', icon: Star, label: 'Aufgaben' },
+    { value: 'home', icon: Home, label: 'Haushalt', color: 'text-blue-500' },
+    { value: 'book', icon: Book, label: 'Lernen', color: 'text-purple-600' },
+    { value: 'dog', icon: Dog, label: 'Haustier', color: 'text-amber-600' },
+    { value: 'sport', icon: Dumbbell, label: 'Sport', color: 'text-green-600' },
+    { value: 'creative', icon: Palette, label: 'Kreativ', color: 'text-orange-500' },
+    { value: 'heart', icon: Heart, label: 'Helfen', color: 'text-pink-500' },
+    { value: 'shopping', icon: ShoppingBag, label: 'Einkauf', color: 'text-teal-500' },
+    { value: 'star', icon: Star, label: 'Sonstiges', color: 'text-yellow-500' },
   ];
 
   const defaultTrigger = (
@@ -179,24 +183,27 @@ export function CreateMissionDialog({ currentUserId, trigger }: CreateMissionDia
                 <FormItem>
                   <FormLabel className="text-mission-text font-medium">Symbol</FormLabel>
                   <FormControl>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-4 gap-2">
                       {iconOptions.map((option) => {
                         const IconComponent = option.icon;
+                        const isSelected = field.value === option.value;
                         return (
                           <button
                             key={option.value}
                             type="button"
                             onClick={() => field.onChange(option.value)}
-                            className={`p-3 rounded-xl border-2 transition-all ${
-                              field.value === option.value
-                                ? 'border-mission-green bg-mission-green/10'
-                                : 'border-gray-200 hover:border-mission-green/50'
+                            className={`p-3 rounded-xl border-2 transition-all min-h-[72px] ${
+                              isSelected
+                                ? 'border-purple-500 bg-purple-50'
+                                : 'border-gray-200 hover:border-purple-300'
                             }`}
                           >
-                            <IconComponent className={`h-5 w-5 mx-auto ${
-                              field.value === option.value ? 'text-mission-green' : 'text-gray-500'
+                            <IconComponent className={`h-6 w-6 mx-auto ${
+                              isSelected ? option.color : 'text-gray-400'
                             }`} />
-                            <p className="text-xs mt-1 text-gray-600">{option.label}</p>
+                            <p className={`text-xs mt-1 ${isSelected ? 'text-purple-700 font-medium' : 'text-gray-500'}`}>
+                              {option.label}
+                            </p>
                           </button>
                         );
                       })}

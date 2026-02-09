@@ -1,24 +1,25 @@
 import { useQuery } from '@tanstack/react-query';
-import { User, Settings, LogOut, Shield } from 'lucide-react';
+import { User, LogOut, Trophy, Target } from 'lucide-react';
 import { useAppState } from '@/hooks/use-app-state';
 import { ModeToggle } from '@/components/ModeToggle';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
-import type { User as UserType } from '@shared/schema';
+import { useAuth } from '@/hooks/use-auth';
+import type { User as UserType, Reward } from '@shared/schema';
 
 export default function Profile() {
   const { mode } = useAppState();
-  const { toast } = useToast();
+  const { logoutMutation } = useAuth();
 
   const { data: user, isLoading } = useQuery<UserType>({
     queryKey: ['/api/user'],
   });
 
-  const handleAction = (action: string) => {
-    toast({
-      title: action,
-      description: "Funktion wird in Zukunft implementiert!",
-    });
+  const { data: rewards = [] } = useQuery<Reward[]>({
+    queryKey: ['/api/rewards'],
+  });
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
   };
 
   if (isLoading) {
@@ -38,121 +39,113 @@ export default function Profile() {
     );
   }
 
+  // Calculate level and progress
+  const level = Math.floor(user.totalXP / 100) + 1;
+  const xpInCurrentLevel = user.totalXP % 100;
+  const nextReward = rewards
+    .filter(r => r.requiredXP > user.totalXP)
+    .sort((a, b) => a.requiredXP - b.requiredXP)[0];
+
   return (
     <div className="space-y-6">
       {/* Profile Header */}
       <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center space-x-4 mb-4">
-          <div className="w-16 h-16 bg-gradient-to-br from-mission-green to-mission-blue rounded-full flex items-center justify-center">
-            <User className="h-8 w-8 text-white" />
+        <div className="flex items-center space-x-4 mb-6">
+          <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
+            <User className="h-10 w-10 text-white" />
           </div>
           <div className="flex-1">
-            <h2 className="text-xl font-bold text-mission-text">{user.username}</h2>
-            <p className="text-gray-600 flex items-center">
-              {user.isParent ? (
-                <>
-                  <Shield className="h-4 w-4 mr-1" />
-                  Eltern-Account
-                </>
-              ) : (
-                'Kind-Account'
-              )}
-            </p>
+            <h2 className="text-2xl font-bold text-mission-text">{user.name || user.username}</h2>
+            <p className="text-gray-600">Level {level}</p>
           </div>
         </div>
-        
-        <div className="grid grid-cols-2 gap-4 mt-4">
-          <div className="text-center p-3 bg-mission-green/10 rounded-xl">
-            <p className="text-2xl font-bold text-mission-green">{user.totalXP}</p>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
+            <Trophy className="h-8 w-8 text-green-600 mx-auto mb-2" />
+            <p className="text-3xl font-bold text-green-600">{user.totalXP}</p>
             <p className="text-sm text-gray-600">Gesamt XP</p>
           </div>
-          <div className="text-center p-3 bg-mission-blue/10 rounded-xl">
-            <p className="text-2xl font-bold text-mission-blue">Level {Math.floor(user.totalXP / 100) + 1}</p>
-            <p className="text-sm text-gray-600">Aktuelles Level</p>
+          <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl">
+            <Target className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+            <p className="text-3xl font-bold text-purple-600">{level}</p>
+            <p className="text-sm text-gray-600">Level</p>
           </div>
+        </div>
+
+        {/* Level Progress */}
+        <div className="mt-6">
+          <div className="flex justify-between text-sm mb-2">
+            <span className="text-gray-600">Level {level}</span>
+            <span className="text-gray-600">Level {level + 1}</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div
+              className="bg-gradient-to-r from-purple-500 to-blue-500 h-3 rounded-full transition-all duration-500"
+              style={{ width: `${xpInCurrentLevel}%` }}
+            />
+          </div>
+          <p className="text-center text-sm text-gray-500 mt-2">
+            {100 - xpInCurrentLevel} XP bis zum nächsten Level
+          </p>
         </div>
       </div>
 
+      {/* Next Reward */}
+      {nextReward && (
+        <div className="bg-white rounded-2xl p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-mission-text mb-4">Nächste Belohnung</h3>
+          <div className="flex items-center gap-4 p-4 bg-amber-50 rounded-xl">
+            <div className="w-14 h-14 bg-amber-200 rounded-xl flex items-center justify-center">
+              <Trophy className="h-7 w-7 text-amber-600" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-amber-800">{nextReward.name}</p>
+              <p className="text-sm text-amber-600">
+                Noch {nextReward.requiredXP - user.totalXP} XP
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mode Toggle */}
       <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-mission-text mb-4">Modus-Einstellungen</h3>
+        <h3 className="text-lg font-semibold text-mission-text mb-4">Modus</h3>
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-medium text-mission-text">Aktueller Modus</p>
-            <p className="text-sm text-gray-600">
+            <p className="font-medium text-mission-text">
               {mode === 'child' ? 'Kind-Ansicht' : 'Eltern-Ansicht'}
+            </p>
+            <p className="text-sm text-gray-500">
+              {mode === 'child'
+                ? 'Aufgaben erledigen und XP sammeln'
+                : 'Aufgaben verwalten und genehmigen'
+              }
             </p>
           </div>
           <ModeToggle />
         </div>
       </div>
 
-      {/* Settings & Actions */}
+      {/* App Info & Logout */}
       <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-mission-text mb-4">Einstellungen</h3>
-        
-        <div className="space-y-3">
-          <button
-            onClick={() => handleAction("Benachrichtigungen")}
-            className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-xl transition-colors"
-          >
-            <Settings className="h-5 w-5 text-gray-500" />
-            <div className="flex-1">
-              <p className="font-medium text-mission-text">Benachrichtigungen</p>
-              <p className="text-sm text-gray-600">Push-Benachrichtigungen verwalten</p>
-            </div>
-          </button>
-
-          <button
-            onClick={() => handleAction("Account-Einstellungen")}
-            className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-xl transition-colors"
-          >
-            <User className="h-5 w-5 text-gray-500" />
-            <div className="flex-1">
-              <p className="font-medium text-mission-text">Account-Einstellungen</p>
-              <p className="text-sm text-gray-600">Profil und Passwort ändern</p>
-            </div>
-          </button>
-
-          {user.isParent && (
-            <button
-              onClick={() => handleAction("Familien-Verwaltung")}
-              className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-xl transition-colors"
-            >
-              <Shield className="h-5 w-5 text-gray-500" />
-              <div className="flex-1">
-                <p className="font-medium text-mission-text">Familien-Verwaltung</p>
-                <p className="text-sm text-gray-600">Kinder-Accounts verwalten</p>
-              </div>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* App Info */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-mission-text mb-4">App-Info</h3>
-        
-        <div className="space-y-2 text-sm text-gray-600">
+        <div className="space-y-3 text-sm text-gray-600 mb-6">
           <div className="flex justify-between">
             <span>Version</span>
             <span>1.0.0</span>
           </div>
-          <div className="flex justify-between">
-            <span>Letzte Aktualisierung</span>
-            <span>{new Date().toLocaleDateString('de-DE')}</span>
-          </div>
         </div>
-        
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <button
-            onClick={() => handleAction("Abmelden")}
-            className="w-full flex items-center justify-center space-x-2 p-3 text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-          >
-            <LogOut className="h-5 w-5" />
-            <span className="font-medium">Abmelden</span>
-          </button>
-        </div>
+
+        <button
+          onClick={handleLogout}
+          disabled={logoutMutation.isPending}
+          className="w-full flex items-center justify-center gap-2 p-4 text-red-600 hover:bg-red-50 rounded-xl transition-colors font-medium"
+        >
+          <LogOut className="h-5 w-5" />
+          <span>{logoutMutation.isPending ? 'Wird abgemeldet...' : 'Abmelden'}</span>
+        </button>
       </div>
     </div>
   );
