@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - LevelMission</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #9333ea 0%, #3b82f6 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 24px;
+      padding: 40px;
+      text-align: center;
+      max-width: 400px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      color: #1f2937;
+      font-size: 24px;
+      margin-bottom: 12px;
+    }
+    p {
+      color: #6b7280;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+    button {
+      background: #9333ea;
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #7c3aed;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📡</div>
+    <h1>Keine Verbindung</h1>
+    <p>
+      Du bist gerade offline. Sobald du wieder Internet hast,
+      kannst du weiter XP sammeln!
+    </p>
+    <button onclick="window.location.reload()">
+      Erneut versuchen
+    </button>
+  </div>
+</body>
+</html>

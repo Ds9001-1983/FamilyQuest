@@ -105,7 +105,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
         </div>
 
         {/* Auth Form */}
-        <div className="w-full max-w-md mx-auto">
+        <div className="w-full max-w-md mx-auto space-y-4">
           <Card className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700">
             <CardHeader>
               <CardTitle className="text-gray-900 dark:text-white">Willkommen bei LevelMission</CardTitle>
@@ -237,6 +237,17 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
               </Tabs>
             </CardContent>
           </Card>
+
+          {/* Legal Links */}
+          <div className="flex justify-center gap-4 text-sm">
+            <a href="/datenschutz" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors">
+              Datenschutz
+            </a>
+            <span className="text-gray-300 dark:text-gray-600">|</span>
+            <a href="/impressum" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors">
+              Impressum
+            </a>
+          </div>
         </div>
       </div>
     </div>

@@ -136,6 +136,15 @@ export default function Profile() {
             <span>Version</span>
             <span>1.0.0</span>
           </div>
+          <div className="flex justify-center gap-4 pt-2 border-t border-gray-100">
+            <a href="/datenschutz" className="text-gray-500 hover:text-gray-700 transition-colors">
+              Datenschutz
+            </a>
+            <span className="text-gray-300">|</span>
+            <a href="/impressum" className="text-gray-500 hover:text-gray-700 transition-colors">
+              Impressum
+            </a>
+          </div>
         </div>
 
         <button

@@ -223,16 +223,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get current user (updated for family system)
-  app.get("/api/user", async (req, res) => {
+  // Get family children
+  app.get("/api/family/children", requireAuth, async (req: any, res) => {
     try {
-      // For demo purposes, return the child user
-      const user = await storage.getUserByUsername("child");
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      res.json(user);
+      const familyId = req.session.familyId;
+      const children = await storage.getChildrenByFamilyId(familyId);
+      res.json(children);
     } catch (error) {
+      console.error("Failed to get children:", error);
+      res.status(500).json({ message: "Failed to get children" });
+    }
+  });
+
+  // Get current user (returns first child for now, or based on device selection)
+  app.get("/api/user", requireAuth, async (req: any, res) => {
+    try {
+      const familyId = req.session.familyId;
+      // Get the first child of the family
+      const children = await storage.getChildrenByFamilyId(familyId);
+      if (children.length === 0) {
+        return res.status(404).json({ message: "No children found" });
+      }
+      // Return the first child (can be enhanced with child selection)
+      res.json(children[0]);
+    } catch (error) {
+      console.error("Failed to get user:", error);
       res.status(500).json({ message: "Failed to get user" });
     }
   });
@@ -382,14 +397,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const rewardId = parseInt(req.params.id);
       const deleted = await storage.deleteReward(rewardId);
-      
+
       if (!deleted) {
         return res.status(404).json({ message: "Reward not found" });
       }
-      
+
       res.json({ message: "Reward deleted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete reward" });
+    }
+  });
+
+  // Redeem a reward (child "buys" with XP)
+  app.post("/api/rewards/:id/redeem", requireAuth, async (req: any, res) => {
+    try {
+      const rewardId = parseInt(req.params.id);
+      const { userId } = req.body;
+
+      // Get reward details
+      const rewards = await storage.getRewards();
+      const reward = rewards.find(r => r.id === rewardId);
+      if (!reward) {
+        return res.status(404).json({ message: "Belohnung nicht gefunden" });
+      }
+
+      // Get user and check XP
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "Benutzer nicht gefunden" });
+      }
+
+      if (user.totalXP < reward.requiredXP) {
+        return res.status(400).json({ message: "Nicht genug XP" });
+      }
+
+      // Redeem the reward
+      const redemption = await storage.redeemReward(rewardId, userId, reward.requiredXP);
+
+      res.json({
+        redemption,
+        message: "Belohnung eingelöst! Warte auf Mama oder Papa."
+      });
+    } catch (error) {
+      console.error("Redeem error:", error);
+      res.status(500).json({ message: "Fehler beim Einlösen" });
+    }
+  });
+
+  // Get pending redemptions (for parent mode)
+  app.get("/api/redemptions/pending", requireAuth, async (req, res) => {
+    try {
+      const redemptions = await storage.getPendingRedemptions();
+      // Enrich with reward and user data
+      const enrichedRedemptions = await Promise.all(
+        redemptions.map(async (r) => {
+          const rewards = await storage.getRewards();
+          const reward = rewards.find(rew => rew.id === r.rewardId);
+          const user = await storage.getUser(r.userId);
+          return {
+            ...r,
+            reward,
+            user,
+          };
+        })
+      );
+      res.json(enrichedRedemptions);
+    } catch (error) {
+      console.error("Failed to get pending redemptions:", error);
+      res.status(500).json({ message: "Failed to get redemptions" });
+    }
+  });
+
+  // Get user's redemptions
+  app.get("/api/redemptions/user/:userId", requireAuth, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const redemptions = await storage.getRedeemedRewardsByUserId(userId);
+      res.json(redemptions);
+    } catch (error) {
+      console.error("Failed to get user redemptions:", error);
+      res.status(500).json({ message: "Failed to get redemptions" });
+    }
+  });
+
+  // Parent approves redemption
+  app.post("/api/redemptions/:id/approve", requireAuth, async (req, res) => {
+    try {
+      const redemptionId = parseInt(req.params.id);
+      const redemption = await storage.approveRedemption(redemptionId);
+
+      if (!redemption) {
+        return res.status(404).json({ message: "Einlösung nicht gefunden" });
+      }
+
+      res.json({ redemption, message: "Belohnung bestätigt!" });
+    } catch (error) {
+      console.error("Approve redemption error:", error);
+      res.status(500).json({ message: "Fehler beim Bestätigen" });
+    }
+  });
+
+  // Parent rejects redemption (refunds XP)
+  app.post("/api/redemptions/:id/reject", requireAuth, async (req, res) => {
+    try {
+      const redemptionId = parseInt(req.params.id);
+      const redemption = await storage.rejectRedemption(redemptionId);
+
+      if (!redemption) {
+        return res.status(404).json({ message: "Einlösung nicht gefunden" });
+      }
+
+      res.json({ redemption, message: "Belohnung abgelehnt. XP wurden zurückgegeben." });
+    } catch (error) {
+      console.error("Reject redemption error:", error);
+      res.status(500).json({ message: "Fehler beim Ablehnen" });
     }
   });
 

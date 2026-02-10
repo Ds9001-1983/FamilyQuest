@@ -1,4 +1,4 @@
-import { families, users, missions, rewards, type Family, type InsertFamily, type User, type InsertUser, type Mission, type InsertMission, type Reward, type InsertReward, type MissionStatus } from "@shared/schema";
+import { families, users, missions, rewards, redeemedRewards, type Family, type InsertFamily, type User, type InsertUser, type Mission, type InsertMission, type Reward, type InsertReward, type RedeemedReward, type InsertRedeemedReward, type MissionStatus } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 
@@ -14,6 +14,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUsersByFamilyId(familyId: number): Promise<User[]>;
+  getChildrenByFamilyId(familyId: number): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   createFamilyChild(name: string, age: number, familyId: number): Promise<User>;
   updateUserXP(id: number, xp: number): Promise<User | undefined>;
@@ -34,6 +35,13 @@ export interface IStorage {
   getRewards(): Promise<Reward[]>;
   createReward(reward: InsertReward): Promise<Reward>;
   deleteReward(id: number): Promise<boolean>;
+
+  // Redeemed Rewards
+  getRedeemedRewardsByUserId(userId: number): Promise<RedeemedReward[]>;
+  getPendingRedemptions(): Promise<RedeemedReward[]>;
+  redeemReward(rewardId: number, userId: number, xpSpent: number): Promise<RedeemedReward>;
+  approveRedemption(id: number): Promise<RedeemedReward | undefined>;
+  rejectRedemption(id: number): Promise<RedeemedReward | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -87,6 +95,13 @@ export class DatabaseStorage implements IStorage {
 
   async getUsersByFamilyId(familyId: number): Promise<User[]> {
     return await db.select().from(users).where(eq(users.familyId, familyId));
+  }
+
+  async getChildrenByFamilyId(familyId: number): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(and(eq(users.familyId, familyId), eq(users.isParent, false)));
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -237,6 +252,81 @@ export class DatabaseStorage implements IStorage {
       .delete(rewards)
       .where(eq(rewards.id, id));
     return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  // Redeemed Rewards methods
+  async getRedeemedRewardsByUserId(userId: number): Promise<RedeemedReward[]> {
+    return await db
+      .select()
+      .from(redeemedRewards)
+      .where(eq(redeemedRewards.userId, userId));
+  }
+
+  async getPendingRedemptions(): Promise<RedeemedReward[]> {
+    return await db
+      .select()
+      .from(redeemedRewards)
+      .where(eq(redeemedRewards.status, "pending"));
+  }
+
+  async redeemReward(rewardId: number, userId: number, xpSpent: number): Promise<RedeemedReward> {
+    // Deduct XP from user
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (user) {
+      await db
+        .update(users)
+        .set({ totalXP: user.totalXP - xpSpent })
+        .where(eq(users.id, userId));
+    }
+
+    // Create redemption record
+    const [redemption] = await db
+      .insert(redeemedRewards)
+      .values({
+        rewardId,
+        userId,
+        xpSpent,
+      })
+      .returning();
+    return redemption;
+  }
+
+  async approveRedemption(id: number): Promise<RedeemedReward | undefined> {
+    const [redemption] = await db
+      .update(redeemedRewards)
+      .set({
+        status: "approved",
+        approvedAt: new Date(),
+      })
+      .where(eq(redeemedRewards.id, id))
+      .returning();
+    return redemption || undefined;
+  }
+
+  async rejectRedemption(id: number): Promise<RedeemedReward | undefined> {
+    // Get the redemption first to refund XP
+    const [existingRedemption] = await db
+      .select()
+      .from(redeemedRewards)
+      .where(eq(redeemedRewards.id, id));
+
+    if (existingRedemption) {
+      // Refund XP to user
+      const [user] = await db.select().from(users).where(eq(users.id, existingRedemption.userId));
+      if (user) {
+        await db
+          .update(users)
+          .set({ totalXP: user.totalXP + existingRedemption.xpSpent })
+          .where(eq(users.id, user.id));
+      }
+    }
+
+    const [redemption] = await db
+      .update(redeemedRewards)
+      .set({ status: "rejected" })
+      .where(eq(redeemedRewards.id, id))
+      .returning();
+    return redemption || undefined;
   }
 }
 

@@ -3,18 +3,21 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Rocket, Target, Gift, TrendingUp, User, Plus, LogOut } from "lucide-react";
+import { Rocket, Target, Gift, TrendingUp, User } from "lucide-react";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { LoginForm } from "@/components/LoginForm";
 import { SetupWizard } from "@/components/SetupWizard";
 import { useAppState } from "@/hooks/use-app-state";
 import { ModeToggle } from "@/components/ModeToggle";
 import { CreateMissionDialog } from "@/components/CreateMissionDialog";
+import { NetworkStatus } from "@/components/NetworkStatus";
 import NotFound from "@/pages/not-found";
 import Missions from "@/pages/missions";
 import Rewards from "@/pages/rewards";
 import Progress from "@/pages/progress";
 import Profile from "@/pages/profile";
+import Datenschutz from "@/pages/datenschutz";
+import Impressum from "@/pages/impressum";
 
 function BottomNavigation() {
   const [location, navigate] = useLocation();
@@ -158,8 +161,16 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
+          <NetworkStatus />
           <Toaster />
-          <AppContent />
+          {/* Public routes without auth */}
+          <Switch>
+            <Route path="/datenschutz" component={Datenschutz} />
+            <Route path="/impressum" component={Impressum} />
+            <Route>
+              <AppContent />
+            </Route>
+          </Switch>
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>

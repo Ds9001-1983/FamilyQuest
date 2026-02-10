@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Plus, Home, Book, Heart, Star, Dumbbell, Palette, Dog, ShoppingBag } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { insertMissionSchema } from '@shared/schema';
+import type { User } from '@shared/schema';
 import {
   Dialog,
   DialogContent,
@@ -42,17 +43,33 @@ export function CreateMissionDialog({ currentUserId, trigger }: CreateMissionDia
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Fetch family children
+  const { data: children = [] } = useQuery<User[]>({
+    queryKey: ['/api/family/children'],
+    queryFn: async () => {
+      const response = await fetch('/api/family/children', { credentials: 'include' });
+      if (!response.ok) return [];
+      return response.json();
+    },
+  });
+
   const form = useForm<CreateMissionForm>({
     resolver: zodResolver(createMissionSchema),
     defaultValues: {
       title: '',
       description: '',
       xpReward: 10,
-      assignedToUserId: 2, // Default to child user
+      assignedToUserId: undefined, // Will be set when children load
       createdByUserId: currentUserId,
       icon: 'home',
     },
   });
+
+  // Set default child when children load
+  const selectedChild = form.watch('assignedToUserId');
+  if (children.length > 0 && !selectedChild) {
+    form.setValue('assignedToUserId', children[0].id);
+  }
 
   const createMissionMutation = useMutation({
     mutationFn: async (data: CreateMissionForm) => {
@@ -117,6 +134,43 @@ export function CreateMissionDialog({ currentUserId, trigger }: CreateMissionDia
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Child Selector - only show if multiple children */}
+            {children.length > 1 && (
+              <FormField
+                control={form.control}
+                name="assignedToUserId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-mission-text font-medium">Für</FormLabel>
+                    <FormControl>
+                      <div className="flex gap-2">
+                        {children.map((child) => (
+                          <button
+                            key={child.id}
+                            type="button"
+                            onClick={() => field.onChange(child.id)}
+                            className={`flex-1 p-3 rounded-xl border-2 transition-all ${
+                              field.value === child.id
+                                ? 'border-purple-500 bg-purple-50'
+                                : 'border-gray-200 hover:border-purple-300'
+                            }`}
+                          >
+                            <p className={`font-medium ${field.value === child.id ? 'text-purple-700' : 'text-gray-600'}`}>
+                              {child.name || child.username}
+                            </p>
+                            {child.age && (
+                              <p className="text-xs text-gray-400">{child.age} Jahre</p>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             <FormField
               control={form.control}
               name="title"
@@ -124,8 +178,8 @@ export function CreateMissionDialog({ currentUserId, trigger }: CreateMissionDia
                 <FormItem>
                   <FormLabel className="text-mission-text font-medium">Titel</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="z.B. Zimmer aufräumen" 
+                    <Input
+                      placeholder="z.B. Zimmer aufräumen"
                       {...field}
                       className="rounded-xl border-gray-300 focus:border-mission-green"
                     />

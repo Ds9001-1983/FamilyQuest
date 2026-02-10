@@ -51,6 +51,17 @@ export const rewards = pgTable("rewards", {
   createdByUserId: integer("created_by_user_id").notNull().references(() => users.id),
 });
 
+// Redeemed rewards - tracks when children "buy" rewards with XP
+export const redeemedRewards = pgTable("redeemed_rewards", {
+  id: serial("id").primaryKey(),
+  rewardId: integer("reward_id").notNull().references(() => rewards.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  xpSpent: integer("xp_spent").notNull(),
+  status: text("status").notNull().default("pending"), // pending, approved, rejected
+  redeemedAt: timestamp("redeemed_at").defaultNow(),
+  approvedAt: timestamp("approved_at"),
+});
+
 export const insertFamilySchema = createInsertSchema(families).omit({
   id: true,
   isSetupComplete: true,
@@ -77,6 +88,13 @@ export const insertRewardSchema = createInsertSchema(rewards).omit({
   id: true,
 });
 
+export const insertRedeemedRewardSchema = createInsertSchema(redeemedRewards).omit({
+  id: true,
+  status: true,
+  redeemedAt: true,
+  approvedAt: true,
+});
+
 export type InsertFamily = z.infer<typeof insertFamilySchema>;
 export type Family = typeof families.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -85,3 +103,5 @@ export type InsertMission = z.infer<typeof insertMissionSchema>;
 export type Mission = typeof missions.$inferSelect;
 export type InsertReward = z.infer<typeof insertRewardSchema>;
 export type Reward = typeof rewards.$inferSelect;
+export type InsertRedeemedReward = z.infer<typeof insertRedeemedRewardSchema>;
+export type RedeemedReward = typeof redeemedRewards.$inferSelect;
