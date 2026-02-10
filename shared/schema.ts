@@ -72,9 +72,6 @@ export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   totalXP: true,
   createdAt: true,
-  username: true,
-  password: true,
-  isParent: true,
 });
 
 export const insertMissionSchema = createInsertSchema(missions).omit({

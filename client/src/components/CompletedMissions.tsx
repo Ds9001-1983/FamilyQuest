@@ -16,7 +16,7 @@ export function CompletedMissions() {
   });
 
   const completedMissions = allMissions
-    .filter(mission => mission.completed)
+    .filter(mission => mission.status === 'approved')
     .sort((a, b) => {
       if (!a.completedAt || !b.completedAt) return 0;
       return new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime();
