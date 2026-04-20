@@ -21,11 +21,17 @@ export const users = pgTable("users", {
   name: text("name"),
   age: integer("age"),
   familyId: integer("family_id").references(() => families.id),
+  // bcrypt hash of a 4–6 digit PIN used for child login. Nullable; children
+  // without a PIN cannot sign in.
+  pinHash: text("pin_hash"),
+  // Expo push token for delivering notifications to this user's device.
+  pushToken: text("push_token"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const missions = pgTable("missions", {
   id: serial("id").primaryKey(),
+  familyId: integer("family_id").notNull().references(() => families.id),
   title: text("title").notNull(),
   description: text("description"),
   xpReward: integer("xp_reward").notNull().default(10),
@@ -38,6 +44,7 @@ export const missions = pgTable("missions", {
 
 export const rewards = pgTable("rewards", {
   id: serial("id").primaryKey(),
+  familyId: integer("family_id").notNull().references(() => families.id),
   name: text("name").notNull(),
   description: text("description"),
   requiredXP: integer("required_xp").notNull(),
@@ -55,19 +62,20 @@ export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   totalXP: true,
   createdAt: true,
-  username: true,
-  password: true,
-  isParent: true,
 });
 
 export const insertMissionSchema = createInsertSchema(missions).omit({
   id: true,
   completed: true,
   completedAt: true,
+  familyId: true,
+  createdByUserId: true,
 });
 
 export const insertRewardSchema = createInsertSchema(rewards).omit({
   id: true,
+  familyId: true,
+  createdByUserId: true,
 });
 
 export type InsertFamily = z.infer<typeof insertFamilySchema>;
